@@ -1,5 +1,18 @@
 schema: spec-driven
 
+# Project context
+context: |
+  TypeScript、gRPC protobuf-ts
+  所有 OpenSpec artifacts 與文件皆使用正體中文（zh-TW）。
+  保留必要的 OpenSpec schema 關鍵字、技術識別字與指令為英文。
+  標註 TODO 事項時，使用 `// TODO([change-id]): description...` 格式，並替換 `[change-id]` 為對應的提案識別碼。
+
+# Per-artifact rules
+rules:
+  tasks:
+    - 風格決策遵循「Majority -> Recency」。
+    - 交付前執行 typescript 編譯器檢查，確保無類型錯誤。
+
 # Project context (optional)
 # This is shown to AI when creating artifacts.
 # Add your tech stack, conventions, style guides, domain knowledge, etc.
