@@ -1,131 +1,131 @@
 ## ADDED Requirements
 
-### Requirement: Mock RpcTransport implements the protobuf-ts RpcTransport interface
+### Requirement: `MockRpcTransport` 必須實作 protobuf-ts 的 `RpcTransport` 介面
 
-The library SHALL provide a `MockRpcTransport` class that fully implements the `@protobuf-ts/runtime-rpc` `RpcTransport` interface, so it can be passed directly to any `protobuf-ts` generated client constructor in place of `GrpcWebFetchTransport`.
+函式庫 SHALL 提供 `MockRpcTransport` 類別，完整實作 `@protobuf-ts/runtime-rpc` 的 `RpcTransport` 介面，讓它可以直接取代 `GrpcWebFetchTransport`，傳入任何 `protobuf-ts` 產生的 client constructor。
 
-#### Scenario: Generated client accepts the mock transport
-- **WHEN** application code calls `new GeneratedServiceClient(mockTransport)` where `mockTransport` is produced by `createGrpcMockTransport(...)`
-- **THEN** the client MUST be constructed without type errors and every generated method MUST dispatch through the mock transport instead of the network
+#### Scenario: Generated client 接受 mock transport
+- **WHEN** 應用程式碼呼叫 `new GeneratedServiceClient(mockTransport)`，且 `mockTransport` 來自 `createGrpcMockTransport(...)`
+- **THEN** client MUST 能在沒有型別錯誤的情況下建立完成，且所有 generated method MUST 透過 mock transport 分派，而不是走網路請求
 
-#### Scenario: Transport exposes all four RpcTransport methods
-- **WHEN** the mock transport instance is inspected
-- **THEN** it MUST expose `mergeOptions`, `unary`, `serverStreaming`, `clientStreaming`, and `duplex` methods with signatures matching the `RpcTransport` interface
+#### Scenario: Transport 暴露完整的 `RpcTransport` 方法
+- **WHEN** 檢查 mock transport 實例
+- **THEN** 它 MUST 暴露 `mergeOptions`、`unary`、`serverStreaming`、`clientStreaming` 與 `duplex` 方法，且簽名必須符合 `RpcTransport` 介面
 
-### Requirement: Handler registry is declarative and service/method based
+### Requirement: Handler registry 必須採宣告式、以 service 與 method 為基礎
 
-The library SHALL provide a registry API that registers handlers by `ServiceInfo` and method `localName`, not by URL. The registry MUST use reflection (`ServiceInfo.typeName`, `MethodInfo.name`, `MethodInfo.localName`) to derive routing keys internally.
+函式庫 SHALL 提供以 `ServiceInfo` 與 method `localName` 註冊 handler 的 registry API，而不是用 URL 註冊。registry MUST 使用 reflection（`ServiceInfo.typeName`、`MethodInfo.name`、`MethodInfo.localName`）在內部推導 routing key。
 
-#### Scenario: Register a unary handler by service and method localName
-- **WHEN** the developer calls `grpc.unary(MyService, 'getUser', resolver)`
-- **THEN** the registry MUST resolve the method using `MyService.methods.find(m => m.localName === 'getUser')`
-- **AND** subsequent invocations of `client.getUser(...)` MUST route to the given resolver
+#### Scenario: 以 service 與 method `localName` 註冊 unary handler
+- **WHEN** 開發者呼叫 `grpc.unary(MyService, 'getUser', resolver)`
+- **THEN** registry MUST 透過 `MyService.methods.find(m => m.localName === 'getUser')` 解析目標 method
+- **AND** 後續 `client.getUser(...)` 的呼叫 MUST 路由到該 resolver
 
-#### Scenario: Register a server-streaming handler by service and method localName
-- **WHEN** the developer calls `grpc.serverStreaming(MyService, 'watchUsers', resolver)`
-- **THEN** the registry MUST only accept methods whose `MethodInfo.serverStreaming` is `true`
-- **AND** registering a unary method with `grpc.serverStreaming` MUST throw an error describing the mismatch
+#### Scenario: 以 service 與 method `localName` 註冊 server-streaming handler
+- **WHEN** 開發者呼叫 `grpc.serverStreaming(MyService, 'watchUsers', resolver)`
+- **THEN** registry MUST 只接受 `MethodInfo.serverStreaming` 為 `true` 的 method
+- **AND** 若把 unary method 註冊到 `grpc.serverStreaming`，MUST 丟出說明型別不符的錯誤
 
-#### Scenario: Unknown method name is rejected at registration time
-- **WHEN** the developer calls `grpc.unary(MyService, 'nonexistent', resolver)` with a name that does not match any `localName` in the service
-- **THEN** the registry MUST throw an error naming both the service `typeName` and the method name attempted
+#### Scenario: 註冊時拒絕未知的 method 名稱
+- **WHEN** 開發者呼叫 `grpc.unary(MyService, 'nonexistent', resolver)`，且該名稱不符合 service 中任何 `localName`
+- **THEN** registry MUST 丟出錯誤，並在訊息中包含 service 的 `typeName` 與嘗試註冊的 method 名稱
 
-### Requirement: Unary resolver receives a typed request and returns a typed response
+### Requirement: Unary resolver 必須收到型別安全的 request，並回傳型別安全的 response
 
-For unary methods the resolver function SHALL receive a context containing `request: I`, `method: MethodInfo<I, O>`, `meta: RpcMetadata`, `signal?: AbortSignal`, and a `passthrough()` control function, and it SHALL return `O | Promise<O>` or throw an `RpcError`.
+對 unary method 而言，resolver 函式 SHALL 收到包含 `request: I`、`method: MethodInfo<I, O>`、`meta: RpcMetadata`、`signal?: AbortSignal` 與 `passthrough()` 控制函式的 context，並且 SHALL 回傳 `O | Promise<O>`，或丟出 `RpcError`。
 
-#### Scenario: Resolver returns a plain object
-- **WHEN** the resolver returns `{ id: '1', name: 'A' }`
-- **THEN** the generated client call MUST resolve with the object typed as `O` (the method's output message type)
+#### Scenario: Resolver 回傳一般物件
+- **WHEN** resolver 回傳 `{ id: '1', name: 'A' }`
+- **THEN** generated client call MUST 以型別 `O`（該 method 的 output message type）resolve 這個物件
 
-#### Scenario: Resolver returns a promise
-- **WHEN** the resolver returns a `Promise<O>`
-- **THEN** the client call MUST await the promise before resolving the `UnaryCall` response
+#### Scenario: Resolver 回傳 promise
+- **WHEN** resolver 回傳 `Promise<O>`
+- **THEN** client call MUST 先等待該 promise 完成，再 resolve `UnaryCall` 的 response
 
-#### Scenario: Resolver throws RpcError
-- **WHEN** the resolver throws `new RpcError('not found', 'NOT_FOUND')`
-- **THEN** the client call MUST reject with the same `RpcError`, status code `NOT_FOUND`, and MUST NOT resolve `response`, `headers`, `status`, or `trailers` promises with success values
+#### Scenario: Resolver 丟出 `RpcError`
+- **WHEN** resolver 丟出 `new RpcError('not found', 'NOT_FOUND')`
+- **THEN** client call MUST 以相同的 `RpcError` 拒絕，狀態碼為 `NOT_FOUND`，且 MUST NOT 讓 `response`、`headers`、`status` 或 `trailers` promise 以成功值 resolve
 
-#### Scenario: Resolver receives decoded request and method info
-- **WHEN** an app calls `client.getUser({ id: '42' })`
-- **THEN** the resolver context MUST include `request.id === '42'` and `method.name === 'GetUser'` (the proto method name) without requiring the resolver to decode any bytes
+#### Scenario: Resolver 收到已解碼的 request 與 method 資訊
+- **WHEN** 應用程式呼叫 `client.getUser({ id: '42' })`
+- **THEN** resolver context MUST 包含 `request.id === '42'` 與 `method.name === 'GetUser'`（proto method 名稱），且 resolver 不需要自行解碼任何位元組
 
-### Requirement: Server-streaming resolver supports iterable, async iterable, and imperative emission
+### Requirement: Server-streaming resolver 必須支援 iterable、async iterable 與 imperative emission
 
-For server-streaming methods the resolver SHALL be allowed to emit messages in any of the following ways: (a) return an `Iterable<O>` or array, (b) return an `AsyncIterable<O>`, or (c) call `stream.send(msg)` / `stream.complete()` / `stream.error(err)` on the provided context.
+對 server-streaming method 而言，resolver SHALL 可以透過下列任一方式送出訊息：（a）回傳 `Iterable<O>` 或陣列、（b）回傳 `AsyncIterable<O>`、或（c）在提供的 context 上呼叫 `stream.send(msg)` / `stream.complete()` / `stream.error(err)`。
 
-#### Scenario: Array return emits then completes
-- **WHEN** the resolver returns `[{id: '1'}, {id: '2'}]`
-- **THEN** the `ServerStreamingCall` output stream MUST emit both messages in order and then notify completion with status `OK`
+#### Scenario: 回傳陣列後依序送出並完成
+- **WHEN** resolver 回傳 `[{id: '1'}, {id: '2'}]`
+- **THEN** `ServerStreamingCall` 的 output stream MUST 依序送出兩筆訊息，之後再以狀態 `OK` 通知完成
 
-#### Scenario: Async iterable emits then completes
-- **WHEN** the resolver returns an `AsyncIterable<O>` yielding two messages
-- **THEN** the output stream MUST emit both messages and then notify completion once the iterable finishes
+#### Scenario: 回傳 `AsyncIterable` 後送出並完成
+- **WHEN** resolver 回傳一個會 yield 兩筆訊息的 `AsyncIterable<O>`
+- **THEN** output stream MUST 送出這兩筆訊息，並在 iterable 結束後通知完成
 
-#### Scenario: Imperative stream context
-- **WHEN** the resolver calls `ctx.stream.send(a)`, `ctx.stream.send(b)`, `ctx.stream.complete()`
-- **THEN** the output stream MUST emit `a`, `b`, then complete with status `OK`
+#### Scenario: 使用 imperative stream context
+- **WHEN** resolver 呼叫 `ctx.stream.send(a)`、`ctx.stream.send(b)`、`ctx.stream.complete()`
+- **THEN** output stream MUST 送出 `a`、`b`，接著以狀態 `OK` 完成
 
-#### Scenario: Abort signal stops emission
-- **WHEN** the caller aborts via `options.abort` while the resolver is mid-emit
-- **THEN** the resolver context `signal.aborted` MUST become `true` and the stream MUST terminate with an `RpcError` of code `CANCELLED`
+#### Scenario: Abort signal 中止訊息送出
+- **WHEN** 呼叫端在 resolver 送出過程中透過 `options.abort` 中止請求
+- **THEN** resolver context 的 `signal.aborted` MUST 變成 `true`，且 stream MUST 以 `RpcError`（code 為 `CANCELLED`）終止
 
-### Requirement: Unregistered methods have well-defined dispatch behavior
+### Requirement: 未註冊 method 的分派行為必須明確定義
 
-The library SHALL allow the user to configure behavior for methods with no registered handler via `createGrpcMockTransport({ registry, fallbackTransport?, onUnhandledRequest? })`. Behavior MUST be:
+函式庫 SHALL 允許使用者透過 `createGrpcMockTransport({ registry, fallbackTransport?, onUnhandledRequest? })` 設定沒有註冊 handler 的 method 行為。其行為 MUST 為：
 
-- If `fallbackTransport` is provided, unregistered calls MUST be delegated to that transport unchanged (same `method`, `input`, `options`).
-- Otherwise the dispatcher MUST honor `onUnhandledRequest`: `'error'` (default) throws `RpcError('UNIMPLEMENTED', …)`; `'warn'` logs a warning and then throws the same error.
-- `passthrough()` invoked inside a resolver MUST behave identically to an unregistered call (i.e. delegate to `fallbackTransport` if configured, otherwise follow `onUnhandledRequest`).
+- 若提供 `fallbackTransport`，未註冊呼叫 MUST 原封不動委派給該 transport（相同的 `method`、`input`、`options`）。
+- 否則 dispatcher MUST 遵守 `onUnhandledRequest`：`'error'`（預設）丟出 `RpcError('UNIMPLEMENTED', …)`；`'warn'` 先記錄 warning，再丟出相同錯誤。
+- 在 resolver 內呼叫的 `passthrough()` MUST 與未註冊呼叫的行為一致（也就是：若有 `fallbackTransport` 就委派過去，否則依 `onUnhandledRequest` 處理）。
 
-#### Scenario: Fallback transport delegation
-- **WHEN** `fallbackTransport` is set and a call hits an unregistered method
-- **THEN** the call MUST be forwarded to `fallbackTransport.unary`/`serverStreaming` with the same arguments and the returned call object MUST be used as the response
+#### Scenario: 委派給 fallback transport
+- **WHEN** 設定了 `fallbackTransport`，且呼叫命中未註冊 method
+- **THEN** 該呼叫 MUST 以相同參數轉送到 `fallbackTransport.unary` 或 `fallbackTransport.serverStreaming`，並採用回傳的 call object 作為結果
 
-#### Scenario: Default error on unhandled
-- **WHEN** no `fallbackTransport` is configured and `onUnhandledRequest` is unset
-- **THEN** the call MUST reject with `RpcError` whose status code is `UNIMPLEMENTED` and whose message includes the service type name and method name
+#### Scenario: 預設對未處理呼叫拋錯
+- **WHEN** 未設定 `fallbackTransport`，且 `onUnhandledRequest` 也未設定
+- **THEN** 呼叫 MUST 以 `RpcError` 拒絕，狀態碼為 `UNIMPLEMENTED`，且訊息中必須包含 service type name 與 method name
 
-#### Scenario: Resolver passthrough delegates to fallback
-- **WHEN** a resolver calls `ctx.passthrough()` and a `fallbackTransport` is configured
-- **THEN** the original call MUST be forwarded to `fallbackTransport` and the resolver's subsequent return value MUST be ignored
+#### Scenario: Resolver 內的 `passthrough()` 委派到 fallback
+- **WHEN** resolver 呼叫 `ctx.passthrough()`，且已設定 `fallbackTransport`
+- **THEN** 原始呼叫 MUST 被轉送到 `fallbackTransport`，且 resolver 後續的回傳值 MUST 被忽略
 
-### Requirement: Resolver controls delay, headers, trailers, and RpcError
+### Requirement: Resolver 必須能控制 delay、headers、trailers 與 `RpcError`
 
-The library SHALL expose APIs for resolvers to control response timing and metadata without manually constructing a `UnaryCall` or `ServerStreamingCall`.
+函式庫 SHALL 提供 API，讓 resolver 可以控制回應時機與 metadata，而不需要手動組出 `UnaryCall` 或 `ServerStreamingCall`。
 
-- Resolvers MAY return a wrapped reply (e.g. via `grpc.reply(...)` helper) that carries `{ body, headers?, trailers?, delay? }` alongside the response body.
-- Resolvers MAY throw or return an `RpcError` (including status code and optional metadata).
-- A helper `grpc.error(code, message, meta?)` SHALL exist to construct an `RpcError` consistently.
+- Resolver MAY 回傳包裝後的 reply（例如透過 `grpc.reply(...)` helper），其中攜帶 `{ body, headers?, trailers?, delay? }` 與 response body。
+- Resolver MAY 丟出或回傳 `RpcError`（包含狀態碼與可選 metadata）。
+- 函式庫 SHALL 提供 `grpc.error(code, message, meta?)` helper，以一致方式建立 `RpcError`。
 
-#### Scenario: Delay before unary response
-- **WHEN** the resolver returns a reply with `delay: 100` ms
-- **THEN** the client's `response` promise MUST resolve no earlier than approximately 100 ms after invocation
+#### Scenario: Unary response 延遲回傳
+- **WHEN** resolver 回傳帶有 `delay: 100` ms 的 reply
+- **THEN** client 的 `response` promise MUST 在呼叫後約 100 ms 之前不得 resolve
 
-#### Scenario: Custom headers and trailers
-- **WHEN** the resolver returns a reply with `headers: {'x-test': 'a'}` and `trailers: {'x-trailer': 'b'}`
-- **THEN** the `UnaryCall.headers` promise MUST resolve with the provided headers and the `trailers` promise MUST resolve with the provided trailers
+#### Scenario: 自訂 headers 與 trailers
+- **WHEN** resolver 回傳帶有 `headers: {'x-test': 'a'}` 與 `trailers: {'x-trailer': 'b'}` 的 reply
+- **THEN** `UnaryCall.headers` promise MUST 以提供的 headers resolve，且 `trailers` promise MUST 以提供的 trailers resolve
 
-#### Scenario: RpcError shorthand
-- **WHEN** the resolver throws `grpc.error('NOT_FOUND', 'missing')`
-- **THEN** the thrown value MUST be an instance of `RpcError` with `code === 'NOT_FOUND'` and `message === 'missing'`
+#### Scenario: `RpcError` 簡寫 helper
+- **WHEN** resolver 丟出 `grpc.error('NOT_FOUND', 'missing')`
+- **THEN** 該值 MUST 是 `RpcError` 的實例，且 `code === 'NOT_FOUND'`、`message === 'missing'`
 
-### Requirement: Client streaming and duplex are explicitly unsupported in MVP
+### Requirement: MVP 必須明確不支援 client streaming 與 duplex
 
-The `clientStreaming` and `duplex` methods on `MockRpcTransport` SHALL match the gRPC-Web transport's behavior by rejecting with `RpcError` status `UNIMPLEMENTED`.
+`MockRpcTransport` 上的 `clientStreaming` 與 `duplex` 方法 SHALL 比照 gRPC-Web transport 的行為，以 `RpcError` 狀態 `UNIMPLEMENTED` 拒絕呼叫。
 
-#### Scenario: Calling a client-streaming method
-- **WHEN** application code invokes a client-streaming RPC through the mock transport
-- **THEN** the call MUST reject with `RpcError` of code `UNIMPLEMENTED` and a message indicating that gRPC-Web does not support client streaming
+#### Scenario: 呼叫 client-streaming method
+- **WHEN** 應用程式碼透過 mock transport 呼叫 client-streaming RPC
+- **THEN** 該呼叫 MUST 以 `RpcError` 拒絕，code 為 `UNIMPLEMENTED`，且訊息必須指出 gRPC-Web 不支援 client streaming
 
-#### Scenario: Calling a duplex method
-- **WHEN** application code invokes a duplex RPC through the mock transport
-- **THEN** the call MUST reject with `RpcError` of code `UNIMPLEMENTED` and a message indicating that gRPC-Web does not support duplex streaming
+#### Scenario: 呼叫 duplex method
+- **WHEN** 應用程式碼透過 mock transport 呼叫 duplex RPC
+- **THEN** 該呼叫 MUST 以 `RpcError` 拒絕，code 為 `UNIMPLEMENTED`，且訊息必須指出 gRPC-Web 不支援 duplex streaming
 
-### Requirement: RpcOptions meta is propagated to resolver context
+### Requirement: `RpcOptions.meta` 必須傳遞到 resolver context
 
-The mock transport SHALL forward the caller's `RpcOptions.meta` (if present) into the resolver's context `meta` field without mutation.
+Mock transport SHALL 將呼叫端提供的 `RpcOptions.meta`（若有）原樣傳入 resolver context 的 `meta` 欄位，不得修改。
 
-#### Scenario: Metadata forwarding
-- **WHEN** the caller invokes `client.getUser({id: '1'}, {meta: {'x-auth': 'token'}})`
-- **THEN** the resolver context MUST observe `meta['x-auth'] === 'token'`
+#### Scenario: Metadata 轉傳
+- **WHEN** 呼叫端執行 `client.getUser({id: '1'}, {meta: {'x-auth': 'token'}})`
+- **THEN** resolver context MUST 觀察到 `meta['x-auth'] === 'token'`
