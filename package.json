@@ -1,0 +1,38 @@
+{
+	"name": "grpc-web-mock",
+	"version": "0.1.0",
+	"description": "Typed gRPC-Web mock transport for protobuf-ts clients.",
+	"license": "MIT",
+	"type": "module",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/SidStraw/grpc-web-mock.git"
+	},
+	"packageManager": "pnpm@10.12.4",
+	"files": ["dist", "README.md", "CHANGELOG.md"],
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js"
+		}
+	},
+	"main": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"scripts": {
+		"build": "pnpm exec tsc -p tsconfig.build.json",
+		"test": "pnpm exec vitest run",
+		"lint": "pnpm run lint:imports && pnpm exec biome check .",
+		"lint:imports": "node ./scripts/check-forbidden-imports.mjs",
+		"typecheck": "pnpm exec tsc -p tsconfig.json"
+	},
+	"peerDependencies": {
+		"@protobuf-ts/runtime": "^2.0.0",
+		"@protobuf-ts/runtime-rpc": "^2.0.0"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^1.9.4",
+		"@types/node": "^22.15.24",
+		"typescript": "^5.8.3",
+		"vitest": "^3.2.4"
+	}
+}

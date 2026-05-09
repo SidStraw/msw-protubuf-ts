@@ -1,0 +1,10 @@
+{
+  "name": "final-consumer-check",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@protobuf-ts/runtime": "^2.11.1",
+    "@protobuf-ts/runtime-rpc": "^2.11.1",
+    "grpc-web-mock": "file:/Users/sid/Developer/msw-protubuf-ts/./.pack-final-PNq5Ik/grpc-web-mock-0.1.0.tgz"
+  }
+}

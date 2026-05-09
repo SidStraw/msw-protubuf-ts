@@ -1,0 +1,47 @@
+lockfileVersion: '9.0'
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
+
+importers:
+
+  .:
+    dependencies:
+      '@protobuf-ts/runtime':
+        specifier: ^2.11.1
+        version: 2.11.1
+      '@protobuf-ts/runtime-rpc':
+        specifier: ^2.11.1
+        version: 2.11.1
+      grpc-web-mock:
+        specifier: file:/Users/sid/Developer/msw-protubuf-ts/./.pack-final-PNq5Ik/grpc-web-mock-0.1.0.tgz
+        version: file:../.pack-final-PNq5Ik/grpc-web-mock-0.1.0.tgz(@protobuf-ts/runtime-rpc@2.11.1)(@protobuf-ts/runtime@2.11.1)
+
+packages:
+
+  '@protobuf-ts/runtime-rpc@2.11.1':
+    resolution: {integrity: sha512-4CqqUmNA+/uMz00+d3CYKgElXO9VrEbucjnBFEjqI4GuDrEQ32MaI3q+9qPBvIGOlL4PmHXrzM32vBPWRhQKWQ==}
+
+  '@protobuf-ts/runtime@2.11.1':
+    resolution: {integrity: sha512-KuDaT1IfHkugM2pyz+FwiY80ejWrkH1pAtOBOZFuR6SXEFTsnb/jiQWQ1rCIrcKx2BtyxnxW6BWwsVSA/Ie+WQ==}
+
+  grpc-web-mock@file:../.pack-final-PNq5Ik/grpc-web-mock-0.1.0.tgz:
+    resolution: {integrity: sha512-gdC6wVfX+nGbJM9/3MSIhsSWNfu4YLKDB3eLHp9aOfHr3KdcIqnIBDSiQfUME8pN2gvZA7QLzraT6TVhd2+nKw==, tarball: file:../.pack-final-PNq5Ik/grpc-web-mock-0.1.0.tgz}
+    version: 0.1.0
+    peerDependencies:
+      '@protobuf-ts/runtime': ^2.0.0
+      '@protobuf-ts/runtime-rpc': ^2.0.0
+
+snapshots:
+
+  '@protobuf-ts/runtime-rpc@2.11.1':
+    dependencies:
+      '@protobuf-ts/runtime': 2.11.1
+
+  '@protobuf-ts/runtime@2.11.1': {}
+
+  grpc-web-mock@file:../.pack-final-PNq5Ik/grpc-web-mock-0.1.0.tgz(@protobuf-ts/runtime-rpc@2.11.1)(@protobuf-ts/runtime@2.11.1):
+    dependencies:
+      '@protobuf-ts/runtime': 2.11.1
+      '@protobuf-ts/runtime-rpc': 2.11.1

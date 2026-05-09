@@ -29,7 +29,6 @@ coverage
 
 *.tsbuildinfo
 .eslintcache
-.editorconfig
 
 .env*
 !.env.local.defaults
