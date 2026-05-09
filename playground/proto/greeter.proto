@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+package playground.greeter.v1;
+
+service GreeterService {
+  rpc SayHello(SayHelloRequest) returns (SayHelloResponse);
+  rpc WatchGreetings(WatchGreetingsRequest) returns (stream GreetingEvent);
+}
+
+message SayHelloRequest {
+  string name = 1;
+  bool fail = 2;
+  int32 delay_ms = 3;
+}
+
+message SayHelloResponse {
+  string message = 1;
+  string request_id = 2;
+}
+
+message WatchGreetingsRequest {
+  string name = 1;
+  int32 count = 2;
+}
+
+message GreetingEvent {
+  string message = 1;
+  int32 sequence = 2;
+}

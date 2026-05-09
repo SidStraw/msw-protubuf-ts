@@ -23,6 +23,9 @@
 		"test": "pnpm exec vitest run",
 		"lint": "pnpm run lint:imports && pnpm exec biome check .",
 		"lint:imports": "node ./scripts/check-forbidden-imports.mjs",
+		"playground:build": "pnpm build && pnpm --filter ./playground build",
+		"playground:dev": "pnpm build && pnpm --filter ./playground dev",
+		"playground:gen": "pnpm --filter ./playground gen",
 		"typecheck": "pnpm exec tsc -p tsconfig.json"
 	},
 	"peerDependencies": {

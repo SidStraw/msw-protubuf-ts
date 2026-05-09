@@ -1,0 +1,27 @@
+{
+	"name": "grpc-web-mock-playground",
+	"private": true,
+	"version": "0.0.0",
+	"type": "module",
+	"scripts": {
+		"build": "tsc -p tsconfig.json && vite build",
+		"dev": "vite",
+		"gen": "rm -rf src/gen && mkdir -p src/gen && protoc --plugin=protoc-gen-ts=./node_modules/.bin/protoc-gen-ts --ts_out src/gen --ts_opt client_generic --proto_path proto proto/greeter.proto"
+	},
+	"dependencies": {
+		"@protobuf-ts/runtime": "^2.0.0",
+		"@protobuf-ts/runtime-rpc": "^2.0.0",
+		"grpc-web-mock": "workspace:*",
+		"react": "^19.1.0",
+		"react-dom": "^19.1.0"
+	},
+	"devDependencies": {
+		"@protobuf-ts/plugin": "^2.11.1",
+		"@protobuf-ts/protoc": "^2.11.1",
+		"@types/react": "^19.1.0",
+		"@types/react-dom": "^19.1.0",
+		"@vitejs/plugin-react": "^5.0.0",
+		"typescript": "^5.8.3",
+		"vite": "^7.0.0"
+	}
+}

@@ -7,6 +7,13 @@
 		"enabled": true
 	},
 	"files": {
-		"ignore": ["dist", "coverage", "docs"]
+		"ignore": [
+			"dist",
+			"coverage",
+			"docs",
+			".consumer-final-*",
+			"playground/dist",
+			"playground/src/gen"
+		]
 	}
 }

@@ -151,6 +151,31 @@ export async function createApiTransport() {
 
 If your bundler can statically prove `VITE_ENABLE_API_MOCK !== "true"`, wrapping the mock branch in `import()` keeps the mock runtime out of the production bundle.
 
+## Playground
+
+This repo includes a Vite + React playground as a pnpm workspace package. It is a consumer-style example that starts from `playground/proto/greeter.proto`, generates `protobuf-ts` client code into `playground/src/gen/`, and calls that generated client through `grpc-web-mock`.
+
+```sh
+pnpm install
+pnpm playground:gen
+pnpm playground:dev
+```
+
+For a production build check:
+
+```sh
+pnpm playground:build
+```
+
+The playground demonstrates:
+
+- unary mock responses with headers, trailers, metadata, and delay
+- `RpcError` propagation from a resolver
+- server-streaming responses emitted from an async iterable
+- using this package through the workspace dependency `grpc-web-mock`
+
+The playground is a transport-level mock example. It does not start a real gRPC-Web backend, does not use MSW, and does not provide a network-level bridge. It is also excluded from the published npm package by the root `files` whitelist.
+
 ## Publish decisions for this MVP
 
 - package name: `grpc-web-mock`
