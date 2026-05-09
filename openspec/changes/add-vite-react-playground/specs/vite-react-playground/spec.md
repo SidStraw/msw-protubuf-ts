@@ -54,6 +54,39 @@ playground React app SHALL 展示 `grpc-web-mock` 的核心使用方式，包含
 - **THEN** app MUST 顯示對應的 `RpcError` 狀態或延遲後的 response
 - **AND** mock handler MUST 能示範 request metadata 被 resolver 讀取
 
+### Requirement: playground 必須提供 MSW-like mock helper 範例
+
+playground SHALL 在 `playground/src/mocks/` 提供範例層 helper，讓 mock 可以用接近 MSW GraphQL 使用體驗的宣告式 handler 陣列定義。此 helper MUST NOT 從 root library package 的 `exports` 匯出，且 MUST NOT 改變核心 library API。
+
+#### Scenario: 宣告式 unary mock helper
+
+- **WHEN** playground mock 使用 `defineUnaryMock(...)` 定義 unary handler
+- **THEN** helper MUST 回傳可傳入 registry 的 `MockHandler`
+- **AND** resolver 或靜態 response MUST 只綁定指定的 service method
+
+#### Scenario: helper 不屬於核心公開 API
+
+- **WHEN** 使用者從 root package `grpc-web-mock` 匯入公開 API
+- **THEN** package MUST NOT 匯出 playground helper
+- **AND** `package.json` 的 `exports` MUST 維持只有主 entry `"."`
+
+### Requirement: playground 必須展示 session stateful mock
+
+playground SHALL 展示目前 session 內的 mock state 可以被 mutation-like RPC 更新，且後續 query-like RPC 會回傳更新後資料。session state MUST 由 playground mock 層管理，不得要求核心 library 內建特定 state model。
+
+#### Scenario: mutation 後 query 讀到更新後資料
+
+- **WHEN** 使用者在 playground UI 先觸發 query-like RPC 讀取目前 tags
+- **AND** 接著觸發 mutation-like RPC 新增 tag
+- **AND** 再次觸發 query-like RPC
+- **THEN** 第二次 query-like RPC MUST 回傳包含新增 tag 的資料
+
+#### Scenario: 使用者可以重置 mock session
+
+- **WHEN** 使用者在 playground UI 觸發 reset
+- **THEN** mock session MUST 回到初始資料
+- **AND** 後續 query-like RPC MUST 回傳初始資料
+
 ### Requirement: repo 根目錄必須提供 playground 操作 scripts
 
 repo root SHALL 提供一致的 playground 操作 scripts，讓維護者不需切換目錄即可執行 codegen、dev server 與 build 驗證。
@@ -79,3 +112,4 @@ README 或相關文件 SHALL 說明如何啟動 playground、如何重新產生 
 - **WHEN** 使用者閱讀專案文件中的 playground 章節
 - **THEN** 文件 MUST 提供安裝、codegen、dev server 與 build 指令
 - **AND** 文件 MUST 說明 playground 是 transport-level mock 範例，不提供 MSW bridge 或真實 gRPC-Web backend
+- **AND** 文件 MUST 說明 playground helper 是範例層抽象，不是核心 package 的穩定公開 API

@@ -67,6 +67,71 @@ export interface GreetingEvent {
      */
     sequence: number;
 }
+/**
+ * @generated from protobuf message playground.greeter.v1.ListTagsRequest
+ */
+export interface ListTagsRequest {
+    /**
+     * @generated from protobuf field: string article_id = 1
+     */
+    articleId: string;
+}
+/**
+ * @generated from protobuf message playground.greeter.v1.ListTagsResponse
+ */
+export interface ListTagsResponse {
+    /**
+     * @generated from protobuf field: string article_id = 1
+     */
+    articleId: string;
+    /**
+     * @generated from protobuf field: repeated playground.greeter.v1.ArticleTag tags = 2
+     */
+    tags: ArticleTag[];
+}
+/**
+ * @generated from protobuf message playground.greeter.v1.AddTagToArticleRequest
+ */
+export interface AddTagToArticleRequest {
+    /**
+     * @generated from protobuf field: string article_id = 1
+     */
+    articleId: string;
+    /**
+     * @generated from protobuf field: string tag_id = 2
+     */
+    tagId: string;
+    /**
+     * @generated from protobuf field: string label = 3
+     */
+    label: string;
+}
+/**
+ * @generated from protobuf message playground.greeter.v1.AddTagToArticleResponse
+ */
+export interface AddTagToArticleResponse {
+    /**
+     * @generated from protobuf field: string article_id = 1
+     */
+    articleId: string;
+    /**
+     * @generated from protobuf field: repeated playground.greeter.v1.ArticleTag tags = 2
+     */
+    tags: ArticleTag[];
+}
+/**
+ * @generated from protobuf message playground.greeter.v1.ArticleTag
+ */
+export interface ArticleTag {
+    /**
+     * @generated from protobuf field: string id = 1
+     */
+    id: string;
+    /**
+     * @generated from protobuf field: string label = 2
+     */
+    label: string;
+}
 // @generated message type with reflection information, may provide speed optimized methods
 class SayHelloRequest$Type extends MessageType<SayHelloRequest> {
     constructor() {
@@ -295,10 +360,287 @@ class GreetingEvent$Type extends MessageType<GreetingEvent> {
  * @generated MessageType for protobuf message playground.greeter.v1.GreetingEvent
  */
 export const GreetingEvent = new GreetingEvent$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ListTagsRequest$Type extends MessageType<ListTagsRequest> {
+    constructor() {
+        super("playground.greeter.v1.ListTagsRequest", [
+            { no: 1, name: "article_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ListTagsRequest>): ListTagsRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.articleId = "";
+        if (value !== undefined)
+            reflectionMergePartial<ListTagsRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ListTagsRequest): ListTagsRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string article_id */ 1:
+                    message.articleId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ListTagsRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string article_id = 1; */
+        if (message.articleId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.articleId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message playground.greeter.v1.ListTagsRequest
+ */
+export const ListTagsRequest = new ListTagsRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ListTagsResponse$Type extends MessageType<ListTagsResponse> {
+    constructor() {
+        super("playground.greeter.v1.ListTagsResponse", [
+            { no: 1, name: "article_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "tags", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => ArticleTag }
+        ]);
+    }
+    create(value?: PartialMessage<ListTagsResponse>): ListTagsResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.articleId = "";
+        message.tags = [];
+        if (value !== undefined)
+            reflectionMergePartial<ListTagsResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ListTagsResponse): ListTagsResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string article_id */ 1:
+                    message.articleId = reader.string();
+                    break;
+                case /* repeated playground.greeter.v1.ArticleTag tags */ 2:
+                    message.tags.push(ArticleTag.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ListTagsResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string article_id = 1; */
+        if (message.articleId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.articleId);
+        /* repeated playground.greeter.v1.ArticleTag tags = 2; */
+        for (let i = 0; i < message.tags.length; i++)
+            ArticleTag.internalBinaryWrite(message.tags[i], writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message playground.greeter.v1.ListTagsResponse
+ */
+export const ListTagsResponse = new ListTagsResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class AddTagToArticleRequest$Type extends MessageType<AddTagToArticleRequest> {
+    constructor() {
+        super("playground.greeter.v1.AddTagToArticleRequest", [
+            { no: 1, name: "article_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "tag_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "label", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<AddTagToArticleRequest>): AddTagToArticleRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.articleId = "";
+        message.tagId = "";
+        message.label = "";
+        if (value !== undefined)
+            reflectionMergePartial<AddTagToArticleRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AddTagToArticleRequest): AddTagToArticleRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string article_id */ 1:
+                    message.articleId = reader.string();
+                    break;
+                case /* string tag_id */ 2:
+                    message.tagId = reader.string();
+                    break;
+                case /* string label */ 3:
+                    message.label = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AddTagToArticleRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string article_id = 1; */
+        if (message.articleId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.articleId);
+        /* string tag_id = 2; */
+        if (message.tagId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.tagId);
+        /* string label = 3; */
+        if (message.label !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.label);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message playground.greeter.v1.AddTagToArticleRequest
+ */
+export const AddTagToArticleRequest = new AddTagToArticleRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class AddTagToArticleResponse$Type extends MessageType<AddTagToArticleResponse> {
+    constructor() {
+        super("playground.greeter.v1.AddTagToArticleResponse", [
+            { no: 1, name: "article_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "tags", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => ArticleTag }
+        ]);
+    }
+    create(value?: PartialMessage<AddTagToArticleResponse>): AddTagToArticleResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.articleId = "";
+        message.tags = [];
+        if (value !== undefined)
+            reflectionMergePartial<AddTagToArticleResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AddTagToArticleResponse): AddTagToArticleResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string article_id */ 1:
+                    message.articleId = reader.string();
+                    break;
+                case /* repeated playground.greeter.v1.ArticleTag tags */ 2:
+                    message.tags.push(ArticleTag.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AddTagToArticleResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string article_id = 1; */
+        if (message.articleId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.articleId);
+        /* repeated playground.greeter.v1.ArticleTag tags = 2; */
+        for (let i = 0; i < message.tags.length; i++)
+            ArticleTag.internalBinaryWrite(message.tags[i], writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message playground.greeter.v1.AddTagToArticleResponse
+ */
+export const AddTagToArticleResponse = new AddTagToArticleResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ArticleTag$Type extends MessageType<ArticleTag> {
+    constructor() {
+        super("playground.greeter.v1.ArticleTag", [
+            { no: 1, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "label", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ArticleTag>): ArticleTag {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.id = "";
+        message.label = "";
+        if (value !== undefined)
+            reflectionMergePartial<ArticleTag>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ArticleTag): ArticleTag {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string id */ 1:
+                    message.id = reader.string();
+                    break;
+                case /* string label */ 2:
+                    message.label = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ArticleTag, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string id = 1; */
+        if (message.id !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.id);
+        /* string label = 2; */
+        if (message.label !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.label);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message playground.greeter.v1.ArticleTag
+ */
+export const ArticleTag = new ArticleTag$Type();
 /**
  * @generated ServiceType for protobuf service playground.greeter.v1.GreeterService
  */
 export const GreeterService = new ServiceType("playground.greeter.v1.GreeterService", [
     { name: "SayHello", options: {}, I: SayHelloRequest, O: SayHelloResponse },
-    { name: "WatchGreetings", serverStreaming: true, options: {}, I: WatchGreetingsRequest, O: GreetingEvent }
+    { name: "WatchGreetings", serverStreaming: true, options: {}, I: WatchGreetingsRequest, O: GreetingEvent },
+    { name: "ListTags", options: {}, I: ListTagsRequest, O: ListTagsResponse },
+    { name: "AddTagToArticle", options: {}, I: AddTagToArticleRequest, O: AddTagToArticleResponse }
 ]);

@@ -1,7 +1,12 @@
 import { RpcError } from "@protobuf-ts/runtime-rpc";
 import { useMemo, useState } from "react";
 
-import type { GreetingEvent, SayHelloResponse } from "./gen/greeter";
+import type {
+	ArticleTag,
+	GreetingEvent,
+	SayHelloResponse,
+} from "./gen/greeter";
+import { resetGreeterMockSession } from "./mocks/greeter";
 import { createPlaygroundGreeterClient } from "./transport";
 
 type UnaryState =
@@ -22,6 +27,12 @@ type StreamState =
 	| { kind: "complete"; events: GreetingEvent[] }
 	| { kind: "error"; events: GreetingEvent[]; message: string };
 
+type TagsState =
+	| { kind: "idle"; tags: ArticleTag[] }
+	| { kind: "loading"; tags: ArticleTag[] }
+	| { kind: "success"; articleId: string; tags: ArticleTag[]; note: string }
+	| { kind: "error"; tags: ArticleTag[]; code: string; message: string };
+
 function describeError(error: unknown): { code: string; message: string } {
 	if (error instanceof RpcError) {
 		return { code: error.code, message: error.message };
@@ -38,10 +49,15 @@ export function App() {
 	const client = useMemo(() => createPlaygroundGreeterClient(), []);
 	const [name, setName] = useState("Ada");
 	const [delayMs, setDelayMs] = useState(400);
+	const [tagLabel, setTagLabel] = useState("frontend");
 	const [unaryState, setUnaryState] = useState<UnaryState>({ kind: "idle" });
 	const [streamState, setStreamState] = useState<StreamState>({
 		kind: "idle",
 		events: [],
+	});
+	const [tagsState, setTagsState] = useState<TagsState>({
+		kind: "idle",
+		tags: [],
 	});
 
 	async function runUnary(fail = false) {
@@ -90,6 +106,55 @@ export function App() {
 		}
 	}
 
+	async function queryTags(note = "Query result") {
+		setTagsState((state) => ({ kind: "loading", tags: state.tags }));
+
+		try {
+			const finished = await client.listTags({ articleId: "article-1" });
+			setTagsState({
+				kind: "success",
+				articleId: finished.response.articleId,
+				tags: finished.response.tags,
+				note,
+			});
+		} catch (error) {
+			setTagsState((state) => ({
+				kind: "error",
+				tags: state.tags,
+				...describeError(error),
+			}));
+		}
+	}
+
+	async function addTag() {
+		setTagsState((state) => ({ kind: "loading", tags: state.tags }));
+
+		try {
+			const finished = await client.addTagToArticle({
+				articleId: "article-1",
+				tagId: `tag-${Date.now()}`,
+				label: tagLabel,
+			});
+			setTagsState({
+				kind: "success",
+				articleId: finished.response.articleId,
+				tags: finished.response.tags,
+				note: "Mutation result; click Query tags again to read the same session state.",
+			});
+		} catch (error) {
+			setTagsState((state) => ({
+				kind: "error",
+				tags: state.tags,
+				...describeError(error),
+			}));
+		}
+	}
+
+	async function resetTags() {
+		resetGreeterMockSession();
+		await queryTags("Reset to initial session state");
+	}
+
 	return (
 		<main className="app-shell">
 			<section className="hero">
@@ -118,6 +183,13 @@ export function App() {
 						step="100"
 						value={delayMs}
 						onChange={(event) => setDelayMs(Number(event.target.value))}
+					/>
+				</label>
+				<label>
+					New tag label
+					<input
+						value={tagLabel}
+						onChange={(event) => setTagLabel(event.target.value)}
 					/>
 				</label>
 			</section>
@@ -164,6 +236,40 @@ export function App() {
 						))}
 					</ul>
 					<pre>{JSON.stringify(streamState, null, 2)}</pre>
+				</section>
+
+				<section className="panel">
+					<h2>Session stateful unary mocks</h2>
+					<p>
+						這段用 playground-only <code>defineSessionUnaryMock()</code>{" "}
+						示範類似 MSW GraphQL 的體驗：
+						<code>addTagToArticle()</code> 更新目前 session，下一次{" "}
+						<code>listTags()</code> 會讀到更新後的 tags。
+					</p>
+					<div className="actions">
+						<button type="button" onClick={() => void queryTags()}>
+							Query tags
+						</button>
+						<button type="button" onClick={() => void addTag()}>
+							Add tag mutation
+						</button>
+						<button
+							type="button"
+							className="secondary"
+							onClick={() => void resetTags()}
+						>
+							Reset session
+						</button>
+					</div>
+					<ul className="stream-list">
+						{tagsState.tags.map((tag) => (
+							<li key={tag.id}>
+								<span>{tag.id}</span>
+								{tag.label}
+							</li>
+						))}
+					</ul>
+					<pre>{JSON.stringify(tagsState, null, 2)}</pre>
 				</section>
 			</div>
 		</main>

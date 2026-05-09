@@ -172,7 +172,11 @@ The playground demonstrates:
 - unary mock responses with headers, trailers, metadata, and delay
 - `RpcError` propagation from a resolver
 - server-streaming responses emitted from an async iterable
+- a playground-only `defineUnaryMock()` / `defineSessionUnaryMock()` helper for MSW-like declarative handlers
+- session stateful mocks where `addTagToArticle()` updates data that `listTags()` reads later in the same browser session
 - using this package through the workspace dependency `grpc-web-mock`
+
+The helper in `playground/src/mocks/define-grpc-mock.ts` is intentionally scoped to the playground. It is a DX experiment for consumer apps that want a GraphQL MSW-like shape, not a stable public API exported by this package.
 
 The playground is a transport-level mock example. It does not start a real gRPC-Web backend, does not use MSW, and does not provide a network-level bridge. It is also excluded from the published npm package by the root `files` whitelist.
 

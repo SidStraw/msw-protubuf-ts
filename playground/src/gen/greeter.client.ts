@@ -4,6 +4,10 @@
 import type { RpcTransport } from "@protobuf-ts/runtime-rpc";
 import type { ServiceInfo } from "@protobuf-ts/runtime-rpc";
 import { GreeterService } from "./greeter";
+import type { AddTagToArticleResponse } from "./greeter";
+import type { AddTagToArticleRequest } from "./greeter";
+import type { ListTagsResponse } from "./greeter";
+import type { ListTagsRequest } from "./greeter";
 import type { GreetingEvent } from "./greeter";
 import type { WatchGreetingsRequest } from "./greeter";
 import type { ServerStreamingCall } from "@protobuf-ts/runtime-rpc";
@@ -24,6 +28,14 @@ export interface IGreeterServiceClient {
      * @generated from protobuf rpc: WatchGreetings
      */
     watchGreetings(input: WatchGreetingsRequest, options?: RpcOptions): ServerStreamingCall<WatchGreetingsRequest, GreetingEvent>;
+    /**
+     * @generated from protobuf rpc: ListTags
+     */
+    listTags(input: ListTagsRequest, options?: RpcOptions): UnaryCall<ListTagsRequest, ListTagsResponse>;
+    /**
+     * @generated from protobuf rpc: AddTagToArticle
+     */
+    addTagToArticle(input: AddTagToArticleRequest, options?: RpcOptions): UnaryCall<AddTagToArticleRequest, AddTagToArticleResponse>;
 }
 /**
  * @generated from protobuf service playground.greeter.v1.GreeterService
@@ -47,5 +59,19 @@ export class GreeterServiceClient implements IGreeterServiceClient, ServiceInfo 
     watchGreetings(input: WatchGreetingsRequest, options?: RpcOptions): ServerStreamingCall<WatchGreetingsRequest, GreetingEvent> {
         const method = this.methods[1], opt = this._transport.mergeOptions(options);
         return stackIntercept<WatchGreetingsRequest, GreetingEvent>("serverStreaming", this._transport, method, opt, input);
+    }
+    /**
+     * @generated from protobuf rpc: ListTags
+     */
+    listTags(input: ListTagsRequest, options?: RpcOptions): UnaryCall<ListTagsRequest, ListTagsResponse> {
+        const method = this.methods[2], opt = this._transport.mergeOptions(options);
+        return stackIntercept<ListTagsRequest, ListTagsResponse>("unary", this._transport, method, opt, input);
+    }
+    /**
+     * @generated from protobuf rpc: AddTagToArticle
+     */
+    addTagToArticle(input: AddTagToArticleRequest, options?: RpcOptions): UnaryCall<AddTagToArticleRequest, AddTagToArticleResponse> {
+        const method = this.methods[3], opt = this._transport.mergeOptions(options);
+        return stackIntercept<AddTagToArticleRequest, AddTagToArticleResponse>("unary", this._transport, method, opt, input);
     }
 }

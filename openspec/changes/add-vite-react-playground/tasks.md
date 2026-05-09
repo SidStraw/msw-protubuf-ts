@@ -31,3 +31,13 @@
 - [x] 5.4 執行 `pnpm typecheck`，確認 root TypeScript 檢查通過。
 - [x] 5.5 執行 `pnpm build`、`pnpm test`、`pnpm lint`，確認既有 library 行為未被破壞。
 - [x] 5.6 執行 npm pack 檢查，確認 tarball 不包含 `playground/`。
+
+## 6. MSW-like helper 與 session state
+
+- [x] 6.1 更新 OpenSpec artifacts，補上 playground-only helper 與 stateful mock 的需求與設計決策。
+- [x] 6.2 擴充 `playground/proto/greeter.proto`，新增 query-like `ListTags` 與 mutation-like `AddTagToArticle` unary RPC。
+- [x] 6.3 新增 `playground/src/mocks/define-grpc-mock.ts`，提供 `defineUnaryMock`、`defineSessionUnaryMock` 與 `createGrpcMockSession`。
+- [x] 6.4 調整 playground mocks，改用宣告式 helper 註冊 handlers，並讓 `AddTagToArticle` 更新 session state、`ListTags` 讀取更新後 state。
+- [x] 6.5 調整 playground UI，加入 query、mutation 與 reset 操作，展示 mutation 後 query 回傳值在目前 session 更新。
+- [x] 6.6 更新 README，說明 helper 位於 playground 範例層，尚非核心 package 公開 API。
+- [x] 6.7 重新執行 codegen、playground build、root typecheck/build/test/lint、pack 檢查與瀏覽器互動驗證。

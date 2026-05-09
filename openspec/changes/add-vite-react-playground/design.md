@@ -18,6 +18,7 @@
 
 - 不提供真實 gRPC-Web backend 或 network-level MSW bridge。
 - 不改變 `grpc-web-mock` 的公開 API、`exports` 或 peer dependency 契約。
+- 不把 playground helper 視為核心 library 的穩定公開 API；它是 consumer DX 探索範例。
 - 不把 playground 作為正式文件網站或 Storybook。
 - 不支援 client streaming 或 duplex 示範，因為 library MVP 已明確不支援這兩種 gRPC-Web 模式。
 
@@ -52,9 +53,30 @@ root `package.json` 應新增：
 
 這些 script 透過 pnpm workspace filter 執行，讓維護者不需要切換目錄。既有 `build`、`test`、`lint`、`typecheck` 不應被改成隱式包含 playground，除非任務明確要求；playground build 應由獨立 script 驗證。
 
+### 5. MSW-like helper 先放在 playground
+
+新增 `playground/src/mocks/define-grpc-mock.ts`，提供薄封裝：
+
+- `defineUnaryMock(...)`：接受 `ServiceInfo`、method `localName` 與 resolver 或靜態 response，回傳 `MockHandler`，讓 mock 設定可組成宣告式 handler 陣列。
+- `createGrpcMockSession(initialState)`：建立目前 playground session 內的 mutable state 容器，提供 `getState()`、`update()` 與 `reset()`。
+- `defineSessionUnaryMock(...)`：將 session 注入 resolver context，示範 mutation-like handler 更新 state、query-like handler 讀取 state。
+
+這一層不放進核心 library，理由是 session shape、reset semantics、是否支援 persistence 與是否要模仿 GraphQL document-style API 都屬於 DX 探索。核心 `grpc-web-mock` 已經提供 method-level registry 與 fallback 能力，playground helper 應先驗證實際使用手感，再決定未來是否正式化。
+
+### 6. Session state demo 採 query/mutation-like unary
+
+擴充 `greeter.proto`，新增類 GraphQL query/mutation 的 unary RPC：
+
+- `ListTags(ListTagsRequest) returns (ListTagsResponse)`
+- `AddTagToArticle(AddTagToArticleRequest) returns (AddTagToArticleResponse)`
+
+mock session 會保存 article tags。`ListTags` 回傳目前 session tag snapshot；`AddTagToArticle` 會新增 tag 並回傳更新後的 article 狀態。React UI 提供 Query、Mutation 與 Reset 按鈕，讓使用者看到「mutation 後 query 回傳值在同一 session 更新」的效果。
+
 ## Risks / Trade-offs
 
 - **Risk: playground deps 讓 repo 安裝變重** → 透過 workspace package 隔離，並避免把 React/Vite 放進 library runtime dependencies。
 - **Risk: generated code 與 `.proto` 不一致** → 提供 `playground:gen`，並在 tasks 中加入重新產生與 build 驗證。
 - **Risk: playground 誤進 npm tarball** → 維持 root `files` 白名單，只包含 `dist`、`README.md`、`CHANGELOG.md`，並在驗證中檢查 pack 內容。
 - **Risk: 範例暗示支援真實 backend 或 MSW** → UI 與文件明確標示這是 transport-level mock playground，不提供 MSW bridge 或真實 gRPC-Web server。
+- **Risk: playground helper 被誤認為核心 API** → 檔案放在 `playground/src/mocks/`，README 明確標示這是範例層 helper，未從 package `exports` 匯出。
+- **Risk: HMR 或 StrictMode 造成 session state 重置** → session 建立於 mock module scope，並提供顯式 reset API；若模組本身被 HMR 重載，仍以 Reset 按鈕與文件說明維持 demo 可理解性。
