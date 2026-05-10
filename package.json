@@ -1,5 +1,5 @@
 {
-	"name": "protobuf-ts-grpc-mock",
+	"name": "@sidtw/protobuf-ts-grpc-mock",
 	"version": "0.1.0",
 	"description": "Typed gRPC-Web mock transport for protobuf-ts clients.",
 	"license": "MIT",
@@ -10,6 +10,9 @@
 	},
 	"packageManager": "pnpm@10.12.4",
 	"files": ["dist", "README.md", "CHANGELOG.md"],
+	"publishConfig": {
+		"access": "public"
+	},
 	"exports": {
 		".": {
 			"types": "./dist/index.d.ts",

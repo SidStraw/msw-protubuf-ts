@@ -1,4 +1,4 @@
-import { grpc } from "protobuf-ts-grpc-mock";
+import { grpc } from "@sidtw/protobuf-ts-grpc-mock";
 
 import { GreeterService } from "../../gen/greeter";
 import type { GreetingEvent, WatchGreetingsRequest } from "../../gen/greeter";

@@ -1,4 +1,4 @@
-import { grpc } from "protobuf-ts-grpc-mock";
+import { grpc } from "@sidtw/protobuf-ts-grpc-mock";
 
 import { ArticleService } from "../../gen/article";
 import type { ListTagsRequest, ListTagsResponse } from "../../gen/article";

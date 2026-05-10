@@ -1,168 +1,366 @@
-# protobuf-ts-grpc-mock
+# @sidtw/protobuf-ts-grpc-mock
 
 Typed gRPC-Web mock transport for `protobuf-ts` clients.
 
-This package gives `protobuf-ts` projects a transport-first mock layer: you register typed unary and server-streaming handlers, inject the mock transport into generated clients, and keep the normal `RpcInterceptor` pipeline intact.
+這個套件提供一層以 `RpcTransport` 為核心的 mock 機制。你可以用 generated `protobuf-ts` service metadata 註冊 typed unary / server-streaming handlers，再把 mock transport 注入既有 generated clients。它不是 HTTP layer mock，也不依賴 MSW；目標是讓 gRPC-Web client 在瀏覽器、Vite playground、Vitest 或本機開發環境中，用接近 MSW GraphQL fixture 的方式定義 mock。
 
-> **Status:** MVP `0.1.x`. Final publish defaults for this change are **unscoped `protobuf-ts-grpc-mock`**, **`VITE_ENABLE_API_MOCK`** for the Vite toggle, and **ESM-only output** with no CJS build.
+## 支援範圍
 
-## What it supports
-
-| Area | Status |
+| 功能 | 狀態 |
 | --- | --- |
-| Unary RPC | Supported |
-| Server streaming RPC | Supported |
-| `grpc.reply()` delay / headers / trailers | Supported |
-| `grpc.error()` / `RpcError` propagation | Supported |
-| `fallbackTransport` / `ctx.passthrough()` | Supported |
-| Existing `RpcInterceptor` pipeline | Supported |
+| Unary RPC | 支援 |
+| Server streaming RPC | 支援 |
+| `grpc.reply()` delay / headers / trailers | 支援 |
+| `grpc.error()` / `RpcError` 傳遞 | 支援 |
+| `fallbackTransport` / `ctx.passthrough()` | 支援 |
+| 既有 `RpcInterceptor` pipeline | 支援 |
 | Client streaming | `UNIMPLEMENTED` |
 | Duplex streaming | `UNIMPLEMENTED` |
-| MSW bridge / `./msw` export | Not included |
+| MSW bridge / `./msw` export | 不包含 |
 
-## Why this package does not depend on MSW
+## 安裝
 
-This library mocks at the `RpcTransport` layer, not the HTTP layer. That keeps the package:
+```sh
+pnpm add @sidtw/protobuf-ts-grpc-mock @protobuf-ts/runtime @protobuf-ts/runtime-rpc
+```
 
-- fully typed at the decoded message level
-- usable in Vitest, Node integration tests, and local development with one registry
-- free of `msw` and `@protobuf-ts/grpcweb-transport` runtime dependencies
+`@protobuf-ts/runtime` 與 `@protobuf-ts/runtime-rpc` 是 peer dependencies。實際專案通常已經因為 generated `protobuf-ts` client 而安裝它們。
 
-If you need a future MSW bridge, that should be added as a separate change instead of expanding the main entrypoint.
+如果你的專案需要真實 gRPC-Web transport，也會需要安裝：
 
-## How this differs from `TestTransport`
+```sh
+pnpm add @protobuf-ts/grpcweb-transport
+```
 
-`@protobuf-ts/runtime-rpc` already ships `TestTransport`, but it is intentionally low-level. `protobuf-ts-grpc-mock` adds:
-
-- service + method registration instead of transport fixture objects
-- resolver helpers for reply metadata, delay, and typed errors
-- fallback and passthrough behavior for gradual adoption
-- parity with normal interceptor usage so existing tooling keeps working
-
-## Quick start
+## 快速開始
 
 ```ts
 import {
   createGrpcMockRegistry,
   createGrpcMockTransport,
   grpc,
-} from "protobuf-ts-grpc-mock";
+} from '@sidtw/protobuf-ts-grpc-mock'
 
-import { GreeterClient, GreeterService } from "./gen/greeter.client";
+import { GreeterClient, GreeterService } from './gen/greeter.client'
 
-const registry = createGrpcMockRegistry();
+const registry = createGrpcMockRegistry()
 
 registry.register(
-  grpc.unary(GreeterService, "sayHello", ({ request }) => ({
+  grpc.unary(GreeterService, 'sayHello', ({ request }) => ({
     message: `Hello, ${request.name}!`,
   })),
-  grpc.serverStreaming(GreeterService, "watchGreetings", ({ request }) => [
+  grpc.serverStreaming(GreeterService, 'watchGreetings', ({ request }) => [
     { message: `${request.name}-1` },
     { message: `${request.name}-2` },
   ]),
-);
+)
 
-const transport = createGrpcMockTransport({ registry });
-const client = new GreeterClient(transport);
+const transport = createGrpcMockTransport({ registry })
+const client = new GreeterClient(transport)
 
-const hello = await client.sayHello({ name: "Ada" });
+const hello = await client.sayHello({ name: 'Ada' })
 ```
 
-If you prefer, the registry also exposes `registry.unary()` and `registry.serverStreaming()` convenience methods.
+`registry.register()` 可以一次註冊多個 handlers。registry 以 `service.typeName` 加上 method name 做 key，因此多個 generated clients 共用同一個 transport 時，不會因為不同 service 有同名 method 而互相覆蓋。
 
-For MSW-like fixture files, `grpc.unary()` can take a static response directly:
+## 像 playground 一樣放進現有專案
 
-```ts
-export default grpc.unary(ArticleService, "addTagToArticle", {
-  articleId: "1",
-  tags: [{ id: "2", label: "frontend" }],
-});
+playground 採用的模式可以直接搬到既有 Vite + React 專案：保留你的 generated clients、集中建立 transport，並把 mocks 拆成「每個 client 一個目錄、每個 method 一個檔案」。
+
+建議檔案結構：
+
+```txt
+src/
+  api/
+    clients.ts
+    transport.ts
+  gen/
+    greeter.client.ts
+    greeter.ts
+    article.client.ts
+    article.ts
+  mocks/
+    index.ts
+    greeter/
+      say-hello.ts
+      watch-greetings.ts
+    article/
+      session.ts
+      list-tags.ts
+      add-tag-to-article.ts
 ```
 
-## Reply helpers
+### 1. 在 method 檔案定義 mock
 
-### `grpc.error()`
+Static unary response 適合單純 fixture，寫法會接近 MSW GraphQL：
 
 ```ts
-registry.register(
-  grpc.unary(GreeterService, "sayHello", () => {
-    throw grpc.error("NOT_FOUND", "missing-user", { "x-reason": "demo" });
-  }),
-);
+// src/mocks/article/list-tags.ts
+import { grpc } from '@sidtw/protobuf-ts-grpc-mock'
+
+import { ArticleService } from '../../gen/article.client'
+
+export default grpc.unary(ArticleService, 'listTags', {
+  tags: [
+    { id: 'tag-1', label: 'typescript' },
+    { id: 'tag-2', label: 'grpc-web' },
+  ],
+})
 ```
 
-### `grpc.reply()`
+需要讀 request、metadata、延遲、headers、trailers 或丟錯時，改用 resolver：
 
 ```ts
-registry.register(
-  grpc.unary(GreeterService, "sayHello", ({ request }) =>
-    grpc.reply(
-      { message: `Hello, ${request.name}!` },
-      {
-        delay: 150,
-        headers: { "x-mock": "true" },
-        trailers: { "x-mock-finished": "true" },
-      },
-    ),
-  ),
-);
-```
+// src/mocks/greeter/say-hello.ts
+import { grpc } from '@sidtw/protobuf-ts-grpc-mock'
 
-## Fallback transport and passthrough
+import { GreeterService } from '../../gen/greeter.client'
 
-Use `fallbackTransport` when you only want to mock some methods.
-
-```ts
-import { GrpcWebFetchTransport } from "@protobuf-ts/grpcweb-transport";
-
-const realTransport = new GrpcWebFetchTransport({
-  baseUrl: import.meta.env.VITE_API_URL,
-});
-
-const transport = createGrpcMockTransport({
-  registry,
-  fallbackTransport: realTransport,
-});
-```
-
-Resolvers can explicitly delegate:
-
-```ts
-registry.register(
-  grpc.unary(GreeterService, "sayHello", ({ passthrough }) => passthrough()),
-);
-```
-
-## Vite transport factory and tree-shaking
-
-Keep the client construction point unchanged and switch transports in one factory.
-
-```ts
-import { GrpcWebFetchTransport } from "@protobuf-ts/grpcweb-transport";
-
-export async function createApiTransport() {
-  const realTransport = new GrpcWebFetchTransport({
-    baseUrl: import.meta.env.VITE_API_URL,
-  });
-
-  if (import.meta.env.VITE_ENABLE_API_MOCK !== "true") {
-    return realTransport;
+export default grpc.unary(GreeterService, 'sayHello', ({ meta, request }) => {
+  if (request.name === 'missing') {
+    throw grpc.error('NOT_FOUND', '找不到這位使用者', {
+      'x-reason': 'playground-demo',
+    })
   }
 
-  const { createGrpcMockTransport } = await import("protobuf-ts-grpc-mock");
+  return grpc.reply(
+    { message: `Hello, ${request.name}!` },
+    {
+      delay: 150,
+      headers: { 'x-mock': 'true' },
+      trailers: { 'x-mock-finished': 'true' },
+    },
+  )
+})
+```
+
+Server streaming 目前維持 resolver-based API：
+
+```ts
+// src/mocks/greeter/watch-greetings.ts
+import { grpc } from '@sidtw/protobuf-ts-grpc-mock'
+
+import { GreeterService } from '../../gen/greeter.client'
+
+export default grpc.serverStreaming(
+  GreeterService,
+  'watchGreetings',
+  async function* ({ request }) {
+    for (let index = 1; index <= 3; index += 1) {
+      yield { message: `${request.name}-${index}` }
+    }
+  },
+)
+```
+
+### 2. 用 session state 模擬 mutation 後 query 更新
+
+套件本身不綁 state management；state 應留在應用程式 mock layer。這讓你可以用最符合專案需求的方式模擬目前瀏覽器 session 的資料。
+
+```ts
+// src/mocks/article/session.ts
+type ArticleTag = {
+  id: string
+  label: string
+}
+
+const initialTags: ArticleTag[] = [
+  { id: 'tag-1', label: 'typescript' },
+  { id: 'tag-2', label: 'grpc-web' },
+]
+
+let tags = [...initialTags]
+
+export function getArticleTags() {
+  return tags
+}
+
+export function addArticleTag(label: string) {
+  const tag = { id: `tag-${tags.length + 1}`, label }
+  tags = [...tags, tag]
+  return tags
+}
+
+export function resetArticleMockSession() {
+  tags = [...initialTags]
+}
+```
+
+```ts
+// src/mocks/article/list-tags.ts
+import { grpc } from '@sidtw/protobuf-ts-grpc-mock'
+
+import { ArticleService } from '../../gen/article.client'
+import { getArticleTags } from './session'
+
+export default grpc.unary(ArticleService, 'listTags', () => ({
+  tags: getArticleTags(),
+}))
+```
+
+```ts
+// src/mocks/article/add-tag-to-article.ts
+import { grpc } from '@sidtw/protobuf-ts-grpc-mock'
+
+import { ArticleService } from '../../gen/article.client'
+import { addArticleTag } from './session'
+
+export default grpc.unary(ArticleService, 'addTagToArticle', ({ request }) => {
+  const label = request.label.trim()
+
+  if (label === '') {
+    throw grpc.error('INVALID_ARGUMENT', 'label 不可為空')
+  }
+
+  return {
+    articleId: request.articleId,
+    tags: addArticleTag(label),
+  }
+})
+```
+
+這個模式可以還原常見的 MSW 使用體驗：先呼叫 mutation 更新 mock session，再呼叫 query 時讀到同一個 session 裡的新資料。
+
+### 3. 集中匯出 handlers
+
+```ts
+// src/mocks/index.ts
+import addTagToArticle from './article/add-tag-to-article'
+import listTags from './article/list-tags'
+import sayHello from './greeter/say-hello'
+import watchGreetings from './greeter/watch-greetings'
+
+export const mockHandlers = [
+  sayHello,
+  watchGreetings,
+  listTags,
+  addTagToArticle,
+]
+```
+
+### 4. 建立可切換 mock / real API 的 transport
+
+在 Vite 專案中，建議只在一個 factory 裡切換 transport。mock 開啟時使用 `createGrpcMockTransport()`，並把真實 transport 傳入 `fallbackTransport`；沒有註冊 mock 的 method 會自動打真實 API。
+
+```ts
+// src/api/transport.ts
+import type { RpcTransport } from '@protobuf-ts/runtime-rpc'
+import { GrpcWebFetchTransport } from '@protobuf-ts/grpcweb-transport'
+
+import { mockHandlers } from '../mocks'
+
+export async function createApiTransport(): Promise<RpcTransport> {
+  const realTransport = new GrpcWebFetchTransport({
+    baseUrl: import.meta.env.VITE_API_URL,
+  })
+
+  if (import.meta.env.VITE_ENABLE_API_MOCK !== 'true') {
+    return realTransport
+  }
+
+  const { createGrpcMockRegistry, createGrpcMockTransport } = await import(
+    '@sidtw/protobuf-ts-grpc-mock'
+  )
+
+  const registry = createGrpcMockRegistry()
+  registry.register(...mockHandlers)
 
   return createGrpcMockTransport({
     registry,
     fallbackTransport: realTransport,
-  });
+  })
 }
 ```
 
-If your bundler can statically prove `VITE_ENABLE_API_MOCK !== "true"`, wrapping the mock branch in `import()` keeps the mock runtime out of the production bundle.
+用 dynamic `import()` 包住 mock branch，可以讓 bundler 在 production 環境變數固定為 `false` 時更容易移除 mock runtime。
+
+### 5. 多個 generated clients 共用同一個 transport
+
+```ts
+// src/api/clients.ts
+import { ArticleServiceClient } from '../gen/article.client'
+import { GreeterServiceClient } from '../gen/greeter.client'
+import { createApiTransport } from './transport'
+
+export async function createApiClients() {
+  const transport = await createApiTransport()
+
+  return {
+    article: new ArticleServiceClient(transport),
+    greeter: new GreeterServiceClient(transport),
+  }
+}
+```
+
+mock 是否命中是 method-level 行為，不是 client-level 開關。只要某個 service method 有註冊 handler，就走 mock；沒有註冊且有 `fallbackTransport`，就走真實 API。
+
+## 用環境變數控制 mock
+
+Vite 只會把 `VITE_` 前綴的變數暴露到瀏覽器端，因此建議使用：
+
+```env
+VITE_API_URL=http://localhost:8080
+VITE_ENABLE_API_MOCK=false
+```
+
+本機需要開 mock 時，可以在 `.env.local` 設定：
+
+```env
+VITE_ENABLE_API_MOCK=true
+```
+
+Production 建議明確關閉：
+
+```env
+VITE_ENABLE_API_MOCK=false
+```
+
+判斷方式建議維持嚴格字串比較：
+
+```ts
+const enableMock = import.meta.env.VITE_ENABLE_API_MOCK === 'true'
+```
+
+不要用 truthy 判斷，因為 `"false"` 在 JavaScript 中仍然是真值。
+
+## Fallback transport 與 passthrough
+
+`fallbackTransport` 適合漸進式導入：只 mock 目前需要的 method，其他 method 維持打真實 API。
+
+```ts
+const transport = createGrpcMockTransport({
+  registry,
+  fallbackTransport: realTransport,
+})
+```
+
+Resolver 也可以明確委派給真實 API：
+
+```ts
+registry.register(
+  grpc.unary(GreeterService, 'sayHello', ({ passthrough }) => passthrough()),
+)
+```
+
+## 使用既有 `RpcInterceptor`
+
+這個套件不會匯入 `window`、瀏覽器 DevTools 或 MSW。Interceptors 仍然透過 `RpcOptions` 傳入，因此 mock mode 與 real transport mode 可以共用相同的 interceptor 行為。
+
+```ts
+import { createGrpcMockTransport } from '@sidtw/protobuf-ts-grpc-mock'
+import { devtoolsInterceptor } from './devtools'
+
+const transport = createGrpcMockTransport({ registry })
+
+await client.sayHello(
+  { name: 'Ada' },
+  { interceptors: [devtoolsInterceptor] },
+)
+```
 
 ## Playground
 
-This repo includes a Vite + React playground as a pnpm workspace package. It is a consumer-style example that starts from `playground/proto/*.proto`, generates `protobuf-ts` client code into `playground/src/gen/`, and calls those generated clients through `protobuf-ts-grpc-mock`.
+本 repo 內含一個 Vite + React playground，作為 consumer-style 範例。它從 `playground/proto/*.proto` 開始，透過 `protobuf-ts` codegen 產生 client，並展示兩個 generated clients 共用同一個 mock transport。
 
 ```sh
 pnpm install
@@ -170,49 +368,22 @@ pnpm playground:gen
 pnpm playground:dev
 ```
 
-For a production build check:
+Production build 檢查：
 
 ```sh
 pnpm playground:build
 ```
 
-The playground demonstrates:
+playground 展示內容包含：
 
-- unary mock responses with headers, trailers, metadata, and delay
-- `RpcError` propagation from a resolver
-- server-streaming responses emitted from an async iterable
-- two generated clients (`GreeterServiceClient` and `ArticleServiceClient`) sharing one mock transport
-- MSW-like mock organization: one client directory under `playground/src/mocks/`, one file per method
-- session stateful mocks where `addTagToArticle()` updates data that `listTags()` reads later in the same browser session
-- using this package through the workspace dependency `protobuf-ts-grpc-mock`
+- unary mock responses、headers、trailers、metadata 與 delay。
+- resolver 丟出 `RpcError` 後由 UI 顯示錯誤狀態。
+- server-streaming responses 從 async iterable 逐筆送出。
+- `GreeterServiceClient` 與 `ArticleServiceClient` 共用同一個 mock transport。
+- `playground/src/mocks/` 依 client 目錄與 method 檔案拆分。
+- `addTagToArticle()` 更新 session state 後，`listTags()` 讀到更新後資料。
 
-The playground is a transport-level mock example. It does not start a real gRPC-Web backend, does not use MSW, and does not provide a network-level bridge. It is also excluded from the published npm package by the root `files` whitelist.
-
-## Publish decisions for this MVP
-
-- package name: `protobuf-ts-grpc-mock`
-- package scope: none
-- env flag: `VITE_ENABLE_API_MOCK`
-- module format: ESM-only
-- CJS build: not included
-
-## Using existing `RpcInterceptor`s
-
-This library does not import `window`, browser APIs, or DevTools code. Interceptors stay user-supplied through normal `RpcOptions`.
-
-```ts
-import { createGrpcMockTransport } from "protobuf-ts-grpc-mock";
-import { devtoolsInterceptor } from "../docs/devtool";
-
-const transport = createGrpcMockTransport({ registry });
-
-await client.sayHello(
-  { name: "Ada" },
-  { interceptors: [devtoolsInterceptor] },
-);
-```
-
-That means mock mode and real transport mode share the same interceptor behavior.
+playground 不會進入 npm package；發佈內容由 root `package.json` 的 `files` whitelist 控制。
 
 ## API reference
 
@@ -220,28 +391,57 @@ That means mock mode and real transport mode share the same interceptor behavior
 
 | Export | Description |
 | --- | --- |
-| `createGrpcMockRegistry()` | Creates a mutable registry backed by a method-keyed map. |
-| `createGrpcMockTransport(options)` | Creates the mock `RpcTransport`. |
-| `MockRpcTransport` | `RpcTransport` implementation used by the factory. |
-| `grpc.unary()` | Creates a unary handler registration from a resolver or static response. |
-| `grpc.serverStreaming()` | Creates a server-streaming handler registration. |
-| `grpc.error()` | Convenience helper for `RpcError`. |
-| `grpc.reply()` | Convenience helper for delayed replies with headers and trailers. |
+| `createGrpcMockRegistry()` | 建立以 service/method key 管理 handlers 的 mutable registry。 |
+| `createGrpcMockTransport(options)` | 建立 mock `RpcTransport`。 |
+| `MockRpcTransport` | factory 內使用的 `RpcTransport` 實作。 |
+| `grpc.unary()` | 建立 unary handler，第三個參數可為 resolver 或 static response。 |
+| `grpc.serverStreaming()` | 建立 server-streaming handler。 |
+| `grpc.error()` | 建立 `RpcError` 的 helper。 |
+| `grpc.reply()` | 建立包含 delay、headers、trailers 的回應 helper。 |
 
 ### Types
 
 | Export | Description |
 | --- | --- |
-| `GrpcMockContext<I, O>` | Resolver context with `request`, `method`, `meta`, `signal`, and `passthrough()`. |
-| `GrpcMockRegistry` | Registry contract used by the transport factory. |
-| `MockHandler` | Registration object created by `grpc.unary()` or `grpc.serverStreaming()`. |
-| `UnaryResolver<I, O>` | Resolver type for unary methods. |
-| `ServerStreamResolver<I, O>` | Resolver type for server-streaming methods. |
-| `StreamController<O>` | Imperative stream API with `send()`, `complete()`, and `error()`. |
+| `GrpcMockContext<I, O>` | Resolver context，包含 `request`、`method`、`meta`、`signal` 與 `passthrough()`。 |
+| `GrpcMockRegistry` | transport factory 使用的 registry contract。 |
+| `MockHandler` | `grpc.unary()` 或 `grpc.serverStreaming()` 建立的 registration object。 |
+| `UnaryMockValue<O>` | Unary mock 可回傳的 static response 或 `grpc.reply()` value。 |
+| `UnaryResolver<I, O>` | Unary method resolver type。 |
+| `ServerStreamResolver<I, O>` | Server-streaming method resolver type。 |
+| `StreamController<O>` | Imperative stream API，包含 `send()`、`complete()` 與 `error()`。 |
+
+## 為什麼不直接依賴 MSW
+
+這個套件 mock 的位置是 `RpcTransport`，不是 HTTP layer。這樣可以：
+
+- 在 decoded message level 保持完整 TypeScript 型別。
+- 在 Vitest、Node integration tests 與本機開發共用同一份 registry。
+- 避免主套件強制依賴 `msw` 或 `@protobuf-ts/grpcweb-transport`。
+
+如果未來需要 MSW bridge，建議以獨立 entry 或獨立套件處理，而不是擴張目前主 entry。
+
+## 與 `TestTransport` 的差異
+
+`@protobuf-ts/runtime-rpc` 已經提供 `TestTransport`，但它偏低階 fixture。`@sidtw/protobuf-ts-grpc-mock` 補上：
+
+- 以 service + method 註冊，而不是直接組 transport fixture object。
+- `grpc.reply()`、delay、metadata、headers、trailers 與 typed errors。
+- `fallbackTransport` / `passthrough()`，方便漸進導入。
+- 與一般 generated client / interceptor 使用方式維持一致。
+
+## 發佈設定
+
+- package name：`@sidtw/protobuf-ts-grpc-mock`
+- package scope：`@sidtw`
+- access：public
+- env flag：`VITE_ENABLE_API_MOCK`
+- module format：ESM-only
+- CJS build：不包含
 
 ## Non-goals
 
-- no MSW bridge
-- no `./msw` subpath export
-- no `msw` dependency
-- no support for client-streaming or duplex gRPC-Web methods
+- 不提供 MSW bridge。
+- 不提供 `./msw` subpath export。
+- 不依賴 `msw`。
+- 不支援 client-streaming 或 duplex gRPC-Web methods。

@@ -158,10 +158,11 @@ export function App() {
 		<main className="app-shell">
 			<section className="hero">
 				<p className="eyebrow">protobuf-ts + Vite + React</p>
-				<h1>protobuf-ts-grpc-mock playground</h1>
+				<h1>@sidtw/protobuf-ts-grpc-mock playground</h1>
 				<p>
 					這個範例從 <code>greeter.proto</code> 產生 client，並用 workspace 中的{" "}
-					<code>protobuf-ts-grpc-mock</code> package 注入 mock transport。
+					<code>@sidtw/protobuf-ts-grpc-mock</code> package 注入 mock
+					transport。
 				</p>
 			</section>
 

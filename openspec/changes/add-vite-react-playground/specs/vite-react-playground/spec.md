@@ -2,7 +2,7 @@
 
 ### Requirement: 專案必須提供 workspace playground package
 
-專案 SHALL 提供一個名為 `playground` 的 pnpm workspace package，作為 consumer-style 範例。此 package MUST 與 library source 分離，並以 workspace 相依方式使用本 repo 的 `protobuf-ts-grpc-mock` package。
+專案 SHALL 提供一個名為 `playground` 的 pnpm workspace package，作為 consumer-style 範例。此 package MUST 與 library source 分離，並以 workspace 相依方式使用本 repo 的 `@sidtw/protobuf-ts-grpc-mock` package。
 
 #### Scenario: playground 被 pnpm workspace 識別
 
@@ -66,7 +66,7 @@ core library SHALL 讓 `grpc.unary()` 與 `registry.unary()` 可接受 resolver 
 
 #### Scenario: 不新增平行 helper namespace
 
-- **WHEN** 使用者從 root package `protobuf-ts-grpc-mock` 匯入公開 API
+- **WHEN** 使用者從 root package `@sidtw/protobuf-ts-grpc-mock` 匯入公開 API
 - **THEN** package MUST NOT 新增與 `grpc` 平行且等價的 mock helper namespace
 - **AND** `package.json` 的 `exports` MUST 維持只有主 entry `"."`
 
