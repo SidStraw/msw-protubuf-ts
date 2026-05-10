@@ -6,7 +6,7 @@
 	"scripts": {
 		"build": "tsc -p tsconfig.json && vite build",
 		"dev": "vite",
-		"gen": "rm -rf src/gen && mkdir -p src/gen && protoc --plugin=protoc-gen-ts=./node_modules/.bin/protoc-gen-ts --ts_out src/gen --ts_opt client_generic --proto_path proto proto/greeter.proto"
+		"gen": "rm -rf src/gen && mkdir -p src/gen && protoc --plugin=protoc-gen-ts=./node_modules/.bin/protoc-gen-ts --ts_out src/gen --ts_opt client_generic --proto_path proto proto/*.proto"
 	},
 	"dependencies": {
 		"@protobuf-ts/runtime": "^2.0.0",

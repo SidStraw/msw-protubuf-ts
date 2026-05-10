@@ -54,21 +54,37 @@ playground React app SHALL 展示 `grpc-web-mock` 的核心使用方式，包含
 - **THEN** app MUST 顯示對應的 `RpcError` 狀態或延遲後的 response
 - **AND** mock handler MUST 能示範 request metadata 被 resolver 讀取
 
-### Requirement: playground 必須提供 MSW-like mock helper 範例
+### Requirement: core unary helper 必須支援 static response
 
-playground SHALL 在 `playground/src/mocks/` 提供範例層 helper，讓 mock 可以用接近 MSW GraphQL 使用體驗的宣告式 handler 陣列定義。此 helper MUST NOT 從 root library package 的 `exports` 匯出，且 MUST NOT 改變核心 library API。
+core library SHALL 讓 `grpc.unary()` 與 `registry.unary()` 可接受 resolver 或 static response，讓使用者可以用接近 MSW fixture 的方式定義 unary mock，而不需要在使用端自行撰寫薄 helper。server-streaming mock MUST 維持 resolver-based API。
 
-#### Scenario: 宣告式 unary mock helper
+#### Scenario: 使用 static response 定義 unary mock
 
-- **WHEN** playground mock 使用 `defineUnaryMock(...)` 定義 unary handler
+- **WHEN** 使用者呼叫 `grpc.unary(Service, 'methodName', responseObject)`
 - **THEN** helper MUST 回傳可傳入 registry 的 `MockHandler`
 - **AND** resolver 或靜態 response MUST 只綁定指定的 service method
 
-#### Scenario: helper 不屬於核心公開 API
+#### Scenario: 不新增平行 helper namespace
 
 - **WHEN** 使用者從 root package `grpc-web-mock` 匯入公開 API
-- **THEN** package MUST NOT 匯出 playground helper
+- **THEN** package MUST NOT 新增與 `grpc` 平行且等價的 mock helper namespace
 - **AND** `package.json` 的 `exports` MUST 維持只有主 entry `"."`
+
+### Requirement: playground mocks 必須依 client 與 method 拆分
+
+playground SHALL 將 mock 檔案拆分為每個 generated client 一個目錄、每個 method 一個檔案，讓使用者能複製接近 MSW GraphQL 的 mock 檔案組織方式。
+
+#### Scenario: 每個 client 有獨立 mock 目錄
+
+- **WHEN** 使用者檢視 `playground/src/mocks/`
+- **THEN** 每個 generated client MUST 有對應目錄
+- **AND** 每個目錄 MUST 以 method 檔案匯出 handlers
+
+#### Scenario: 多個 client 共用同一個 mock transport
+
+- **WHEN** playground 建立兩個 generated clients
+- **THEN** clients MUST 共用同一個 registry 與 mock transport
+- **AND** registry MUST 以 service/method key 區分不同 client 的 handlers
 
 ### Requirement: playground 必須展示 session stateful mock
 
@@ -112,4 +128,4 @@ README 或相關文件 SHALL 說明如何啟動 playground、如何重新產生 
 - **WHEN** 使用者閱讀專案文件中的 playground 章節
 - **THEN** 文件 MUST 提供安裝、codegen、dev server 與 build 指令
 - **AND** 文件 MUST 說明 playground 是 transport-level mock 範例，不提供 MSW bridge 或真實 gRPC-Web backend
-- **AND** 文件 MUST 說明 playground helper 是範例層抽象，不是核心 package 的穩定公開 API
+- **AND** 文件 MUST 說明 playground 使用兩個 generated clients 與依 method 拆分的 mock files

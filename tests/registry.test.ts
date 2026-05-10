@@ -42,6 +42,31 @@ describe("createGrpcMockRegistry", () => {
 		expect(registry.get(TypedGreeterService.methods[0])).toBe(second);
 	});
 
+	test("supports static unary response handlers", () => {
+		const registry = createGrpcMockRegistry();
+		const handler = grpc.unary<SayHelloRequest, SayHelloResponse>(
+			TypedGreeterService,
+			"sayHello",
+			{ message: "static" },
+		);
+
+		registry.unary<SayHelloRequest, SayHelloResponse>(
+			TypedGreeterService,
+			"sayHello",
+			grpc.reply({ message: "registered" }, { headers: { "x-static": "1" } }),
+		);
+
+		expect(handler.resolver({} as never)).toEqual({ message: "static" });
+		expect(
+			registry.get(TypedGreeterService.methods[0])?.resolver({} as never),
+		).toEqual(
+			expect.objectContaining({
+				body: { message: "registered" },
+				headers: { "x-static": "1" },
+			}),
+		);
+	});
+
 	test("throws for unknown method names", () => {
 		expect(() =>
 			grpc.unary(TypedGreeterService, "missingMethod", () => ({

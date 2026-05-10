@@ -7,5 +7,6 @@ export type {
 	MockHandler,
 	ServerStreamResolver,
 	StreamController,
+	UnaryMockValue,
 	UnaryResolver,
 } from "./types.js";

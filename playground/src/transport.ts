@@ -1,11 +1,16 @@
-import { createGrpcMockTransport } from "grpc-web-mock";
+import { createGrpcMockRegistry, createGrpcMockTransport } from "grpc-web-mock";
 
+import { ArticleServiceClient } from "./gen/article.client";
 import { GreeterServiceClient } from "./gen/greeter.client";
-import { createGreeterMockRegistry } from "./mocks/greeter";
+import { articleHandlers, greeterHandlers } from "./mocks";
 
-export function createPlaygroundGreeterClient() {
-	const registry = createGreeterMockRegistry();
+export function createPlaygroundClients() {
+	const registry = createGrpcMockRegistry();
+	registry.register(...greeterHandlers, ...articleHandlers);
 	const transport = createGrpcMockTransport({ registry });
 
-	return new GreeterServiceClient(transport);
+	return {
+		article: new ArticleServiceClient(transport),
+		greeter: new GreeterServiceClient(transport),
+	};
 }

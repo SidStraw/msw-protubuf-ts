@@ -1,13 +1,10 @@
 import { RpcError } from "@protobuf-ts/runtime-rpc";
 import { useMemo, useState } from "react";
 
-import type {
-	ArticleTag,
-	GreetingEvent,
-	SayHelloResponse,
-} from "./gen/greeter";
-import { resetGreeterMockSession } from "./mocks/greeter";
-import { createPlaygroundGreeterClient } from "./transport";
+import type { ArticleTag } from "./gen/article";
+import type { GreetingEvent, SayHelloResponse } from "./gen/greeter";
+import { resetArticleMockSession } from "./mocks";
+import { createPlaygroundClients } from "./transport";
 
 type UnaryState =
 	| { kind: "idle" }
@@ -46,7 +43,7 @@ function describeError(error: unknown): { code: string; message: string } {
 }
 
 export function App() {
-	const client = useMemo(() => createPlaygroundGreeterClient(), []);
+	const clients = useMemo(() => createPlaygroundClients(), []);
 	const [name, setName] = useState("Ada");
 	const [delayMs, setDelayMs] = useState(400);
 	const [tagLabel, setTagLabel] = useState("frontend");
@@ -65,7 +62,7 @@ export function App() {
 		setUnaryState({ kind: "loading", startedAt });
 
 		try {
-			const call = client.sayHello(
+			const call = clients.greeter.sayHello(
 				{ name, fail, delayMs },
 				{ meta: { "x-request-id": `demo-${Date.now()}` } },
 			);
@@ -88,7 +85,7 @@ export function App() {
 		setStreamState({ kind: "streaming", events });
 
 		try {
-			const call = client.watchGreetings({ name, count: 3 });
+			const call = clients.greeter.watchGreetings({ name, count: 3 });
 
 			for await (const event of call.responses) {
 				events.push(event);
@@ -110,7 +107,9 @@ export function App() {
 		setTagsState((state) => ({ kind: "loading", tags: state.tags }));
 
 		try {
-			const finished = await client.listTags({ articleId: "article-1" });
+			const finished = await clients.article.listTags({
+				articleId: "article-1",
+			});
 			setTagsState({
 				kind: "success",
 				articleId: finished.response.articleId,
@@ -130,7 +129,7 @@ export function App() {
 		setTagsState((state) => ({ kind: "loading", tags: state.tags }));
 
 		try {
-			const finished = await client.addTagToArticle({
+			const finished = await clients.article.addTagToArticle({
 				articleId: "article-1",
 				tagId: `tag-${Date.now()}`,
 				label: tagLabel,
@@ -151,7 +150,7 @@ export function App() {
 	}
 
 	async function resetTags() {
-		resetGreeterMockSession();
+		resetArticleMockSession();
 		await queryTags("Reset to initial session state");
 	}
 
@@ -241,8 +240,7 @@ export function App() {
 				<section className="panel">
 					<h2>Session stateful unary mocks</h2>
 					<p>
-						這段用 playground-only <code>defineSessionUnaryMock()</code>{" "}
-						示範類似 MSW GraphQL 的體驗：
+						這段示範類似 MSW GraphQL 的體驗：
 						<code>addTagToArticle()</code> 更新目前 session，下一次{" "}
 						<code>listTags()</code> 會讀到更新後的 tags。
 					</p>

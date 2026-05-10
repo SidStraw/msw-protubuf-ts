@@ -11,6 +11,7 @@ import type {
 	GrpcMockReply,
 	MockHandler,
 	ServerStreamResolver,
+	UnaryMockValue,
 	UnaryResolver,
 } from "./types.js";
 
@@ -90,9 +91,11 @@ class Registry implements GrpcMockRegistry {
 	unary<I extends object, O extends object>(
 		service: ServiceInfo,
 		methodLocalName: string,
-		resolver: UnaryResolver<I, O>,
+		resolverOrResponse: UnaryResolver<I, O> | UnaryMockValue<O>,
 	): this {
-		return this.register(grpc.unary(service, methodLocalName, resolver));
+		return this.register(
+			grpc.unary(service, methodLocalName, resolverOrResponse),
+		);
 	}
 
 	serverStreaming<I extends object, O extends object>(
@@ -121,15 +124,19 @@ function createReply<O extends object>(
 function createUnaryHandler<I extends object, O extends object>(
 	service: ServiceInfo,
 	methodLocalName: string,
-	resolver: UnaryResolver<I, O>,
+	resolverOrResponse: UnaryResolver<I, O> | UnaryMockValue<O>,
 ): MockHandler<I, O> {
 	const method = findMethod<I, O>(service, methodLocalName, "unary");
+	const resolver =
+		typeof resolverOrResponse === "function"
+			? resolverOrResponse
+			: () => resolverOrResponse;
 
 	return {
 		key: createKey(service, method),
 		kind: "unary",
 		method,
-		resolver,
+		resolver: resolver as UnaryResolver<I, O>,
 	};
 }
 
@@ -157,6 +164,11 @@ function unary<S extends ServiceInfo, N extends string>(
 	methodLocalName: N,
 	resolver: UnaryResolver<ServiceInput<S>, ServiceOutput<S>>,
 ): MockHandler<ServiceInput<S>, ServiceOutput<S>>;
+function unary<S extends ServiceInfo, N extends string>(
+	service: S,
+	methodLocalName: N,
+	response: UnaryMockValue<ServiceOutput<S>>,
+): MockHandler<ServiceInput<S>, ServiceOutput<S>>;
 function unary<I extends object, O extends object>(
 	service: ServiceInfo,
 	methodLocalName: string,
@@ -165,9 +177,14 @@ function unary<I extends object, O extends object>(
 function unary<I extends object, O extends object>(
 	service: ServiceInfo,
 	methodLocalName: string,
-	resolver: UnaryResolver<I, O>,
+	response: UnaryMockValue<O>,
+): MockHandler<I, O>;
+function unary<I extends object, O extends object>(
+	service: ServiceInfo,
+	methodLocalName: string,
+	resolverOrResponse: UnaryResolver<I, O> | UnaryMockValue<O>,
 ): MockHandler<I, O> {
-	return createUnaryHandler(service, methodLocalName, resolver);
+	return createUnaryHandler(service, methodLocalName, resolverOrResponse);
 }
 
 function serverStreaming<S extends ServiceInfo, N extends string>(

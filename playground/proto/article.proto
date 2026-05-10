@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package playground.article.v1;
+
+service ArticleService {
+  rpc ListTags(ListTagsRequest) returns (ListTagsResponse);
+  rpc AddTagToArticle(AddTagToArticleRequest) returns (AddTagToArticleResponse);
+}
+
+message ListTagsRequest {
+  string article_id = 1;
+}
+
+message ListTagsResponse {
+  string article_id = 1;
+  repeated ArticleTag tags = 2;
+}
+
+message AddTagToArticleRequest {
+  string article_id = 1;
+  string tag_id = 2;
+  string label = 3;
+}
+
+message AddTagToArticleResponse {
+  string article_id = 1;
+  repeated ArticleTag tags = 2;
+}
+
+message ArticleTag {
+  string id = 1;
+  string label = 2;
+}

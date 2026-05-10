@@ -26,6 +26,8 @@ export interface GrpcMockReply<O extends object> {
 	trailers?: RpcMetadata | undefined;
 }
 
+export type UnaryMockValue<O extends object> = O | GrpcMockReply<O>;
+
 type BivariantCallback<Args, Result> = {
 	bivarianceHack(args: Args): Result;
 }["bivarianceHack"];
@@ -35,7 +37,7 @@ export type UnaryResolver<
 	O extends object,
 > = BivariantCallback<
 	GrpcMockContext<I, O>,
-	O | GrpcMockReply<O> | Promise<O | GrpcMockReply<O>>
+	UnaryMockValue<O> | Promise<UnaryMockValue<O>>
 >;
 
 export type ServerStreamResolver<
@@ -73,6 +75,11 @@ export interface GrpcMockRegistry {
 		service: ServiceInfo,
 		methodLocalName: string,
 		resolver: UnaryResolver<I, O>,
+	): this;
+	unary<I extends object, O extends object>(
+		service: ServiceInfo,
+		methodLocalName: string,
+		response: UnaryMockValue<O>,
 	): this;
 	serverStreaming<I extends object, O extends object>(
 		service: ServiceInfo,

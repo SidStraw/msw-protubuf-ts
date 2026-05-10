@@ -70,6 +70,15 @@ const hello = await client.sayHello({ name: "Ada" });
 
 If you prefer, the registry also exposes `registry.unary()` and `registry.serverStreaming()` convenience methods.
 
+For MSW-like fixture files, `grpc.unary()` can take a static response directly:
+
+```ts
+export default grpc.unary(ArticleService, "addTagToArticle", {
+  articleId: "1",
+  tags: [{ id: "2", label: "frontend" }],
+});
+```
+
 ## Reply helpers
 
 ### `grpc.error()`
@@ -153,7 +162,7 @@ If your bundler can statically prove `VITE_ENABLE_API_MOCK !== "true"`, wrapping
 
 ## Playground
 
-This repo includes a Vite + React playground as a pnpm workspace package. It is a consumer-style example that starts from `playground/proto/greeter.proto`, generates `protobuf-ts` client code into `playground/src/gen/`, and calls that generated client through `grpc-web-mock`.
+This repo includes a Vite + React playground as a pnpm workspace package. It is a consumer-style example that starts from `playground/proto/*.proto`, generates `protobuf-ts` client code into `playground/src/gen/`, and calls those generated clients through `grpc-web-mock`.
 
 ```sh
 pnpm install
@@ -172,11 +181,10 @@ The playground demonstrates:
 - unary mock responses with headers, trailers, metadata, and delay
 - `RpcError` propagation from a resolver
 - server-streaming responses emitted from an async iterable
-- a playground-only `defineUnaryMock()` / `defineSessionUnaryMock()` helper for MSW-like declarative handlers
+- two generated clients (`GreeterServiceClient` and `ArticleServiceClient`) sharing one mock transport
+- MSW-like mock organization: one client directory under `playground/src/mocks/`, one file per method
 - session stateful mocks where `addTagToArticle()` updates data that `listTags()` reads later in the same browser session
 - using this package through the workspace dependency `grpc-web-mock`
-
-The helper in `playground/src/mocks/define-grpc-mock.ts` is intentionally scoped to the playground. It is a DX experiment for consumer apps that want a GraphQL MSW-like shape, not a stable public API exported by this package.
 
 The playground is a transport-level mock example. It does not start a real gRPC-Web backend, does not use MSW, and does not provide a network-level bridge. It is also excluded from the published npm package by the root `files` whitelist.
 
@@ -215,7 +223,7 @@ That means mock mode and real transport mode share the same interceptor behavior
 | `createGrpcMockRegistry()` | Creates a mutable registry backed by a method-keyed map. |
 | `createGrpcMockTransport(options)` | Creates the mock `RpcTransport`. |
 | `MockRpcTransport` | `RpcTransport` implementation used by the factory. |
-| `grpc.unary()` | Creates a unary handler registration. |
+| `grpc.unary()` | Creates a unary handler registration from a resolver or static response. |
 | `grpc.serverStreaming()` | Creates a server-streaming handler registration. |
 | `grpc.error()` | Convenience helper for `RpcError`. |
 | `grpc.reply()` | Convenience helper for delayed replies with headers and trailers. |

@@ -8,6 +8,8 @@ import {
 	grpc,
 } from "../src/index.js";
 import {
+	type SayHelloRequest,
+	type SayHelloResponse,
 	TypedGreeterService,
 	chatGreetingsMethod,
 	sayHelloMethod,
@@ -15,6 +17,23 @@ import {
 } from "./fixtures/service.js";
 
 describe("MockRpcTransport unary calls", () => {
+	test("resolves static unary response handlers", async () => {
+		const registry = createGrpcMockRegistry();
+		registry.register(
+			grpc.unary<SayHelloRequest, SayHelloResponse>(
+				TypedGreeterService,
+				"sayHello",
+				{ message: "static hello" },
+			),
+		);
+
+		const transport = createGrpcMockTransport({ registry });
+		const call = transport.unary(sayHelloMethod, { name: "Ada" }, {});
+
+		await expect(call.response).resolves.toEqual({ message: "static hello" });
+		await expect(call.status).resolves.toMatchObject({ code: "OK" });
+	});
+
 	test("resolves unary calls with headers, trailers, status, and forwarded metadata", async () => {
 		const seenMeta: Array<Record<string, string | string[]>> = [];
 		const originalMeta = { authorization: "Bearer test-token" };
