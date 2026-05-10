@@ -1,12 +1,12 @@
 {
-	"name": "grpc-web-mock",
+	"name": "protobuf-ts-grpc-mock",
 	"version": "0.1.0",
 	"description": "Typed gRPC-Web mock transport for protobuf-ts clients.",
 	"license": "MIT",
 	"type": "module",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/SidStraw/grpc-web-mock.git"
+		"url": "git+https://github.com/SidStraw/protobuf-ts-grpc-mock.git"
 	},
 	"packageManager": "pnpm@10.12.4",
 	"files": ["dist", "README.md", "CHANGELOG.md"],

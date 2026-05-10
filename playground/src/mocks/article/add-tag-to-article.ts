@@ -1,4 +1,4 @@
-import { grpc } from "grpc-web-mock";
+import { grpc } from "protobuf-ts-grpc-mock";
 
 import { ArticleService } from "../../gen/article";
 import type {

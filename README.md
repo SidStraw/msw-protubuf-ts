@@ -1,10 +1,10 @@
-# grpc-web-mock
+# protobuf-ts-grpc-mock
 
 Typed gRPC-Web mock transport for `protobuf-ts` clients.
 
 This package gives `protobuf-ts` projects a transport-first mock layer: you register typed unary and server-streaming handlers, inject the mock transport into generated clients, and keep the normal `RpcInterceptor` pipeline intact.
 
-> **Status:** MVP `0.1.x`. Final publish defaults for this change are **unscoped `grpc-web-mock`**, **`VITE_ENABLE_API_MOCK`** for the Vite toggle, and **ESM-only output** with no CJS build.
+> **Status:** MVP `0.1.x`. Final publish defaults for this change are **unscoped `protobuf-ts-grpc-mock`**, **`VITE_ENABLE_API_MOCK`** for the Vite toggle, and **ESM-only output** with no CJS build.
 
 ## What it supports
 
@@ -32,7 +32,7 @@ If you need a future MSW bridge, that should be added as a separate change inste
 
 ## How this differs from `TestTransport`
 
-`@protobuf-ts/runtime-rpc` already ships `TestTransport`, but it is intentionally low-level. `grpc-web-mock` adds:
+`@protobuf-ts/runtime-rpc` already ships `TestTransport`, but it is intentionally low-level. `protobuf-ts-grpc-mock` adds:
 
 - service + method registration instead of transport fixture objects
 - resolver helpers for reply metadata, delay, and typed errors
@@ -46,7 +46,7 @@ import {
   createGrpcMockRegistry,
   createGrpcMockTransport,
   grpc,
-} from "grpc-web-mock";
+} from "protobuf-ts-grpc-mock";
 
 import { GreeterClient, GreeterService } from "./gen/greeter.client";
 
@@ -149,7 +149,7 @@ export async function createApiTransport() {
     return realTransport;
   }
 
-  const { createGrpcMockTransport } = await import("grpc-web-mock");
+  const { createGrpcMockTransport } = await import("protobuf-ts-grpc-mock");
 
   return createGrpcMockTransport({
     registry,
@@ -162,7 +162,7 @@ If your bundler can statically prove `VITE_ENABLE_API_MOCK !== "true"`, wrapping
 
 ## Playground
 
-This repo includes a Vite + React playground as a pnpm workspace package. It is a consumer-style example that starts from `playground/proto/*.proto`, generates `protobuf-ts` client code into `playground/src/gen/`, and calls those generated clients through `grpc-web-mock`.
+This repo includes a Vite + React playground as a pnpm workspace package. It is a consumer-style example that starts from `playground/proto/*.proto`, generates `protobuf-ts` client code into `playground/src/gen/`, and calls those generated clients through `protobuf-ts-grpc-mock`.
 
 ```sh
 pnpm install
@@ -184,13 +184,13 @@ The playground demonstrates:
 - two generated clients (`GreeterServiceClient` and `ArticleServiceClient`) sharing one mock transport
 - MSW-like mock organization: one client directory under `playground/src/mocks/`, one file per method
 - session stateful mocks where `addTagToArticle()` updates data that `listTags()` reads later in the same browser session
-- using this package through the workspace dependency `grpc-web-mock`
+- using this package through the workspace dependency `protobuf-ts-grpc-mock`
 
 The playground is a transport-level mock example. It does not start a real gRPC-Web backend, does not use MSW, and does not provide a network-level bridge. It is also excluded from the published npm package by the root `files` whitelist.
 
 ## Publish decisions for this MVP
 
-- package name: `grpc-web-mock`
+- package name: `protobuf-ts-grpc-mock`
 - package scope: none
 - env flag: `VITE_ENABLE_API_MOCK`
 - module format: ESM-only
@@ -201,7 +201,7 @@ The playground is a transport-level mock example. It does not start a real gRPC-
 This library does not import `window`, browser APIs, or DevTools code. Interceptors stay user-supplied through normal `RpcOptions`.
 
 ```ts
-import { createGrpcMockTransport } from "grpc-web-mock";
+import { createGrpcMockTransport } from "protobuf-ts-grpc-mock";
 import { devtoolsInterceptor } from "../docs/devtool";
 
 const transport = createGrpcMockTransport({ registry });

@@ -1,4 +1,7 @@
-import { createGrpcMockRegistry, createGrpcMockTransport } from "grpc-web-mock";
+import {
+	createGrpcMockRegistry,
+	createGrpcMockTransport,
+} from "protobuf-ts-grpc-mock";
 
 import { ArticleServiceClient } from "./gen/article.client";
 import { GreeterServiceClient } from "./gen/greeter.client";

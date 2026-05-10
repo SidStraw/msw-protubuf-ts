@@ -1,6 +1,6 @@
 ## Why
 
-目前專案只有 library 原始碼、測試 fixture 與 README 片段，缺少可在本機直接啟動的 consumer playground。這讓維護者難以確認 `protobuf-ts` codegen、`grpc-web-mock` transport 注入與前端實際互動效果，也讓使用者缺少可複製的完整範例。
+目前專案只有 library 原始碼、測試 fixture 與 README 片段，缺少可在本機直接啟動的 consumer playground。這讓維護者難以確認 `protobuf-ts` codegen、`protobuf-ts-grpc-mock` transport 注入與前端實際互動效果，也讓使用者缺少可複製的完整範例。
 
 ## What Changes
 

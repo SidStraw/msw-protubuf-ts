@@ -2,7 +2,7 @@
 
 ### Requirement: 專案必須提供 workspace playground package
 
-專案 SHALL 提供一個名為 `playground` 的 pnpm workspace package，作為 consumer-style 範例。此 package MUST 與 library source 分離，並以 workspace 相依方式使用本 repo 的 `grpc-web-mock` package。
+專案 SHALL 提供一個名為 `playground` 的 pnpm workspace package，作為 consumer-style 範例。此 package MUST 與 library source 分離，並以 workspace 相依方式使用本 repo 的 `protobuf-ts-grpc-mock` package。
 
 #### Scenario: playground 被 pnpm workspace 識別
 
@@ -34,7 +34,7 @@ playground SHALL 包含示範用 `.proto` 檔案與可重複執行的 `protobuf-
 
 ### Requirement: playground 必須展示 mock transport 的核心互動
 
-playground React app SHALL 展示 `grpc-web-mock` 的核心使用方式，包含 registry 註冊、transport 建立、generated client 呼叫，以及 UI 中可觀察的 mock 結果。
+playground React app SHALL 展示 `protobuf-ts-grpc-mock` 的核心使用方式，包含 registry 註冊、transport 建立、generated client 呼叫，以及 UI 中可觀察的 mock 結果。
 
 #### Scenario: 展示 unary mock response
 
@@ -66,7 +66,7 @@ core library SHALL 讓 `grpc.unary()` 與 `registry.unary()` 可接受 resolver 
 
 #### Scenario: 不新增平行 helper namespace
 
-- **WHEN** 使用者從 root package `grpc-web-mock` 匯入公開 API
+- **WHEN** 使用者從 root package `protobuf-ts-grpc-mock` 匯入公開 API
 - **THEN** package MUST NOT 新增與 `grpc` 平行且等價的 mock helper namespace
 - **AND** `package.json` 的 `exports` MUST 維持只有主 entry `"."`
 

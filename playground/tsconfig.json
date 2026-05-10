@@ -11,6 +11,10 @@
 		"forceConsistentCasingInFileNames": true,
 		"module": "ESNext",
 		"moduleResolution": "Bundler",
+		"baseUrl": ".",
+		"paths": {
+			"protobuf-ts-grpc-mock": ["../src/index.ts"]
+		},
 		"resolveJsonModule": true,
 		"isolatedModules": true,
 		"noEmit": true,

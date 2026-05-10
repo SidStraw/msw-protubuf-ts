@@ -1,6 +1,6 @@
 ## Context
 
-`grpc-web-mock` 目前已提供 transport-first mock library、測試 fixture 與 README 範例，但缺少一個能從 `.proto` 開始、經過 `protobuf-ts` codegen、再由 Vite + React UI 實際呼叫 generated client 的可執行範例。既有測試中的 `tests/fixtures/service.ts` 是手寫 service fixture，適合單元測試，但不適合展示使用者實際導入時會看到的檔案結構與開發流程。
+`protobuf-ts-grpc-mock` 目前已提供 transport-first mock library、測試 fixture 與 README 範例，但缺少一個能從 `.proto` 開始、經過 `protobuf-ts` codegen、再由 Vite + React UI 實際呼叫 generated client 的可執行範例。既有測試中的 `tests/fixtures/service.ts` 是手寫 service fixture，適合單元測試，但不適合展示使用者實際導入時會看到的檔案結構與開發流程。
 
 這個 playground 應視為 consumer package，而不是 library source 的一部分。它要驗證與展示 library 對外使用方式，同時避免影響 npm package 發佈內容與主 entry 的相依性契約。
 
@@ -17,7 +17,7 @@
 **Non-Goals:**
 
 - 不提供真實 gRPC-Web backend 或 network-level MSW bridge。
-- 不改變 `grpc-web-mock` 的公開 API、`exports` 或 peer dependency 契約。
+- 不改變 `protobuf-ts-grpc-mock` 的公開 API、`exports` 或 peer dependency 契約。
 - 不新增平行於 `grpc` 的另一組 mock helper namespace。
 - 不把 playground 作為正式文件網站或 Storybook。
 - 不支援 client streaming 或 duplex 示範，因為 library MVP 已明確不支援這兩種 gRPC-Web 模式。
@@ -40,7 +40,7 @@ generated output 應提交進 repo，確保 clone 後不一定要先安裝 proto
 
 React UI 應保持小型且明確：一個 unary 表單、一個 server-streaming 示範區、一個 error 示範按鈕，以及一個 metadata/delay 狀態顯示。mock handlers 放在 `playground/src/mocks/`，transport factory 放在 `playground/src/transport.ts`，讓使用者可以快速對照 README 的整合方式。
 
-不導入 routing、state management 或 UI component library，避免範例焦點偏離 `protobuf-ts` 與 `grpc-web-mock`。
+不導入 routing、state management 或 UI component library，避免範例焦點偏離 `protobuf-ts` 與 `protobuf-ts-grpc-mock`。
 
 ### 4. Root scripts 作為主要入口
 

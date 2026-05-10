@@ -131,7 +131,7 @@
 
 ## Open Questions
 
-- 最終 npm package 名稱與 scope？（例：`@{your-scope}/protobuf-ts-grpc-mock` vs `grpc-web-mock`）
+- 最終 npm package 名稱與 scope？已定案為無 scope 的 `protobuf-ts-grpc-mock`。
 - 預設環境變數命名是否採 `VITE_ENABLE_API_MOCK`？是否需要支援 `process.env.*` 與 `import.meta.env.*` 兩種讀取方式的工具函式？
 - 是否需要同時提供 CJS 建置，還是純 ESM？取決於使用者既有專案 bundler 是否全面支援 ESM-only 套件。
 - 未來若要追加 MSW bridge，應採獨立 package 還是 subpath export？（建議獨立 change 再評估）
@@ -237,7 +237,7 @@
 
 ### 6. Package 形態：單一 npm package + subpath exports
 
-**決策**：發佈一個 package（暫名 `grpc-web-mock` / `@your-scope/protobuf-ts-grpc-mock`），包含兩個入口：
+**決策**：發佈一個 package，名稱定為 `protobuf-ts-grpc-mock`，包含兩個入口：
 
 - `.`：核心，僅依賴 `@protobuf-ts/runtime-rpc` + `@protobuf-ts/runtime`。
 - `./msw`：MSW bridge，額外依賴 `msw`（optional peer）與 `@protobuf-ts/grpcweb-transport`。
@@ -267,9 +267,9 @@
 
 ### 9. 以現有研究文件的 API 草圖為 MVP API 形狀，命名後續可調整
 
-**決策**：對外命名暫定 `createGrpcMockRegistry()`、`createGrpcMockTransport()`、`createGrpcMswHandlers()`、`grpc.unary()`、`grpc.serverStreaming()`、`grpc.error(code, message)`。實際 package 名稱、scope、env var 名稱（例 `VITE_ENABLE_API_MOCK`）在 Phase 1 末尾與使用者確認後定案。
+**決策**：對外命名採 `createGrpcMockRegistry()`、`createGrpcMockTransport()`、`createGrpcMswHandlers()`、`grpc.unary()`、`grpc.serverStreaming()`、`grpc.error(code, message)`。package 名稱已定為 `protobuf-ts-grpc-mock`；env var 名稱維持 `VITE_ENABLE_API_MOCK`。
 
-**理由**：這屬於「低信心」產品命名，兩份研究都標注為需實際專案驗證；先以文件草圖推進、不阻塞實作。
+**理由**：公開 API 與環境變數名稱已足以支撐目前 MVP；將 package 名稱定案後，可避免 README、workspace 與 playground 文件持續分岔。
 
 ## Risks / Trade-offs
 
@@ -294,7 +294,6 @@
 
 ## Open Questions
 
-- 最終 npm package 名稱與 scope？（例：`@{your-scope}/protobuf-ts-grpc-mock` vs `grpc-web-mock`）
 - 預設環境變數命名是否採 `VITE_ENABLE_API_MOCK`？是否需要支援 `process.env.*` 與 `import.meta.env.*` 兩種讀取方式的工具函式？
 - 是否需要同時提供 CJS 建置，還是純 ESM？取決於使用者既有專案 bundler 是否全面支援 ESM-only 套件。
 - Phase 3 是否值得維護一個 `protobuf-ts` codegen plugin 來產出更強的 method-name → I/O 型別 map，還是以手動泛型 + 文件就足夠？

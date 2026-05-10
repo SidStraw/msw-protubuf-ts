@@ -8,7 +8,7 @@ const initialState: ArticleMockState = {
 	articles: {
 		"article-1": [
 			{ id: "tag-1", label: "protobuf-ts" },
-			{ id: "tag-2", label: "grpc-web-mock" },
+			{ id: "tag-2", label: "protobuf-ts-grpc-mock" },
 		],
 	},
 };

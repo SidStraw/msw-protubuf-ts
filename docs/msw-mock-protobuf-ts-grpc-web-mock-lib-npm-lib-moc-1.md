@@ -222,7 +222,7 @@ MSW 的 `GraphQLHandler` 是建構自訂 handler 的最佳參考[^8]：
 
 ```typescript
 // 使用者端 API
-import { grpc } from 'grpc-web-mock';
+import { grpc } from 'protobuf-ts-grpc-mock';
 import { GreeterService, SayHelloRequest, SayHelloResponse } from './gen/greeter';
 
 export const handlers = [
@@ -586,7 +586,7 @@ export class MockGrpcTransport implements RpcTransport {
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    grpc-web-mock (npm lib)                    │
+│                protobuf-ts-grpc-mock (npm lib)                │
 │                                                               │
 │  ┌──────────────────┐     ┌────────────────────────────┐     │
 │  │  Handler Registry │     │    MSW Adapter (optional)   │     │
@@ -614,7 +614,7 @@ export class MockGrpcTransport implements RpcTransport {
 參考 MSW 的 `http.get()` / `graphql.query()` 風格[^9]，設計 `grpc.unary()` / `grpc.serverStreaming()`：
 
 ```typescript
-import { grpc } from 'grpc-web-mock';
+import { grpc } from 'protobuf-ts-grpc-mock';
 import { GreeterService } from './gen/greeter.client';
 import { SayHelloResponse } from './gen/greeter';
 
@@ -714,7 +714,7 @@ grpc.unary(GreeterService, 'sayHello', ({ request }) => {
 ### 9.1 Package 結構
 
 ```
-grpc-web-mock/
+protobuf-ts-grpc-mock/
 ├── src/
 │   ├── index.ts              # 主要匯出
 │   ├── transport.ts          # MockGrpcTransport 實作
@@ -732,7 +732,7 @@ grpc-web-mock/
 
 ```json
 {
-  "name": "grpc-web-mock",
+  "name": "protobuf-ts-grpc-mock",
   "version": "0.1.0",
   "type": "module",
   "exports": {
@@ -759,14 +759,14 @@ grpc-web-mock/
 ### 9.3 匯出 API
 
 ```typescript
-// grpc-web-mock/src/index.ts
+// protobuf-ts-grpc-mock/src/index.ts
 
 export { MockGrpcTransport } from './transport';
 export { grpc } from './handlers';
 export { createMockTransport } from './transport';
 export type { MockHandler, UnaryMockResolver, StreamMockResolver } from './types';
 
-// grpc-web-mock/msw
+// protobuf-ts-grpc-mock/msw
 export { toMswHandlers } from './msw-adapter';
 ```
 
@@ -779,7 +779,7 @@ export { toMswHandlers } from './msw-adapter';
 ```typescript
 // src/transport.ts（前端專案中）
 import { GrpcWebFetchTransport } from '@protobuf-ts/grpcweb-transport';
-import { createMockTransport } from 'grpc-web-mock';
+import { createMockTransport } from 'protobuf-ts-grpc-mock';
 import { handlers } from './mocks/grpc-handlers';
 
 function createTransport() {
@@ -808,7 +808,7 @@ export const greeterClient = new GreeterServiceClient(transport);
 ```typescript
 // src/mocks/browser.ts
 import { setupWorker } from 'msw/browser';
-import { toMswHandlers } from 'grpc-web-mock/msw';
+import { toMswHandlers } from 'protobuf-ts-grpc-mock/msw';
 import { handlers } from './grpc-handlers';
 
 export const worker = setupWorker(...toMswHandlers(handlers));
@@ -851,7 +851,7 @@ export default defineConfig({
 
 ```typescript
 const transport = import.meta.env.VITE_ENABLE_MOCK === 'true'
-  ? (await import('grpc-web-mock')).createMockTransport(
+  ? (await import('protobuf-ts-grpc-mock')).createMockTransport(
       (await import('./mocks/grpc-handlers')).handlers
     )
   : new GrpcWebFetchTransport({ baseUrl: import.meta.env.VITE_API_URL });

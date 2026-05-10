@@ -1,4 +1,4 @@
-import { grpc } from "grpc-web-mock";
+import { grpc } from "protobuf-ts-grpc-mock";
 
 import { GreeterService } from "../../gen/greeter";
 import type { SayHelloRequest, SayHelloResponse } from "../../gen/greeter";
@@ -22,7 +22,7 @@ export default grpc.unary<SayHelloRequest, SayHelloResponse>(
 			},
 			{
 				delay: request.delayMs,
-				headers: { "x-playground": "grpc-web-mock" },
+				headers: { "x-playground": "protobuf-ts-grpc-mock" },
 				trailers: { "x-request-id": requestId },
 			},
 		);

@@ -36,7 +36,7 @@ importers:
       '@protobuf-ts/runtime-rpc':
         specifier: ^2.0.0
         version: 2.11.1
-      grpc-web-mock:
+      protobuf-ts-grpc-mock:
         specifier: workspace:*
         version: link:..
       react:
