@@ -1,3 +1,5 @@
+import { createGrpcMockSession } from "@sidtw/protobuf-ts-grpc-mock";
+
 import type { ArticleTag } from "../../gen/article";
 
 interface ArticleMockState {
@@ -13,27 +15,40 @@ const initialState: ArticleMockState = {
 	},
 };
 
-let state = structuredClone(initialState);
+const session = createGrpcMockSession(initialState);
 
 export function getArticleTags(articleId: string): ArticleTag[] {
-	return [...(state.articles[articleId] ?? [])];
+	return [...(session.getState().articles[articleId] ?? [])];
 }
 
 export function addArticleTag(
 	articleId: string,
 	tag: ArticleTag,
 ): ArticleTag[] {
-	const tags = state.articles[articleId] ?? [];
+	const state = session.update((current) => {
+		const articles: Record<string, ArticleTag[]> = {};
 
-	if (!tags.some((existingTag) => existingTag.id === tag.id)) {
-		tags.push(tag);
-	}
+		for (const [id, tags] of Object.entries(current.articles)) {
+			articles[id] = [...tags];
+		}
 
-	state.articles[articleId] = tags;
-	return getArticleTags(articleId);
+		const tags = articles[articleId] ?? [];
+
+		if (!tags.some((existingTag) => existingTag.id === tag.id)) {
+			tags.push(tag);
+		}
+
+		return {
+			articles: {
+				...articles,
+				[articleId]: tags,
+			},
+		};
+	});
+
+	return [...(state.articles[articleId] ?? [])];
 }
 
-export function resetArticleMockSession(): ArticleMockState {
-	state = structuredClone(initialState);
-	return structuredClone(state);
+export function resetArticleMockSession(): void {
+	session.reset();
 }

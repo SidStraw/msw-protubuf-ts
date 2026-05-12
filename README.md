@@ -13,6 +13,7 @@ Typed gRPC-Web mock transport for `protobuf-ts` clients.
 | `grpc.reply()` delay / headers / trailers | 支援 |
 | `grpc.error()` / `RpcError` 傳遞 | 支援 |
 | `fallbackTransport` / `ctx.passthrough()` | 支援 |
+| Session stateful mocks | 支援 |
 | 既有 `RpcInterceptor` pipeline | 支援 |
 | Client streaming | `UNIMPLEMENTED` |
 | Duplex streaming | `UNIMPLEMENTED` |
@@ -155,35 +156,27 @@ export default grpc.serverStreaming(
 
 ### 2. 用 session state 模擬 mutation 後 query 更新
 
-套件本身不綁 state management；state 應留在應用程式 mock layer。這讓你可以用最符合專案需求的方式模擬目前瀏覽器 session 的資料。
+`createGrpcMockRegistry()` 可以持有一份 typed session。所有透過同一個 registry 建出的 mock transport 會共用這份 session；resolver 可透過 `ctx.session` 讀寫目前 mock session 的資料。
 
 ```ts
 // src/mocks/article/session.ts
+import { createGrpcMockSession } from '@sidtw/protobuf-ts-grpc-mock'
+
 type ArticleTag = {
   id: string
   label: string
 }
 
-const initialTags: ArticleTag[] = [
-  { id: 'tag-1', label: 'typescript' },
-  { id: 'tag-2', label: 'grpc-web' },
-]
-
-let tags = [...initialTags]
-
-export function getArticleTags() {
-  return tags
+export type ArticleMockState = {
+  tags: ArticleTag[]
 }
 
-export function addArticleTag(label: string) {
-  const tag = { id: `tag-${tags.length + 1}`, label }
-  tags = [...tags, tag]
-  return tags
-}
-
-export function resetArticleMockSession() {
-  tags = [...initialTags]
-}
+export const articleSession = createGrpcMockSession<ArticleMockState>({
+  tags: [
+    { id: 'tag-1', label: 'typescript' },
+    { id: 'tag-2', label: 'grpc-web' },
+  ],
+})
 ```
 
 ```ts
@@ -191,11 +184,16 @@ export function resetArticleMockSession() {
 import { grpc } from '@sidtw/protobuf-ts-grpc-mock'
 
 import { ArticleService } from '../../gen/article.client'
-import { getArticleTags } from './session'
+import type { ListTagsRequest, ListTagsResponse } from '../../gen/article'
+import type { ArticleMockState } from './session'
 
-export default grpc.unary(ArticleService, 'listTags', () => ({
-  tags: getArticleTags(),
-}))
+export default grpc.unary<ListTagsRequest, ListTagsResponse, ArticleMockState>(
+  ArticleService,
+  'listTags',
+  ({ session }) => ({
+    tags: [...session.getState().tags],
+  }),
+)
 ```
 
 ```ts
@@ -203,23 +201,53 @@ export default grpc.unary(ArticleService, 'listTags', () => ({
 import { grpc } from '@sidtw/protobuf-ts-grpc-mock'
 
 import { ArticleService } from '../../gen/article.client'
-import { addArticleTag } from './session'
+import type {
+  AddTagToArticleRequest,
+  AddTagToArticleResponse,
+} from '../../gen/article'
+import type { ArticleMockState } from './session'
 
-export default grpc.unary(ArticleService, 'addTagToArticle', ({ request }) => {
+export default grpc.unary<
+  AddTagToArticleRequest,
+  AddTagToArticleResponse,
+  ArticleMockState
+>(ArticleService, 'addTagToArticle', ({ request, session }) => {
   const label = request.label.trim()
 
   if (label === '') {
     throw grpc.error('INVALID_ARGUMENT', 'label 不可為空')
   }
 
+  const state = session.update((current) => ({
+    tags: [
+      ...current.tags,
+      { id: request.tagId || `tag-${current.tags.length + 1}`, label },
+    ],
+  }))
+
   return {
     articleId: request.articleId,
-    tags: addArticleTag(label),
+    tags: [...state.tags],
   }
 })
 ```
 
 這個模式可以還原常見的 MSW 使用體驗：先呼叫 mutation 更新 mock session，再呼叫 query 時讀到同一個 session 裡的新資料。
+
+在建立 registry 時傳入 session，就能讓 `ctx.session` 保持同一份狀態：
+
+```ts
+import { createGrpcMockRegistry } from '@sidtw/protobuf-ts-grpc-mock'
+
+import { articleSession } from './article/session'
+
+const registry = createGrpcMockRegistry({ session: articleSession })
+registry.register(...mockHandlers)
+```
+
+`session.update()` 是建議的寫入方式，適合 read-modify-write；請把「讀目前 state、計算下一個 state」放在同一個 `update()` callback 內完成。`session.reset()` 會回到建立 session 時的 initial snapshot，方便在測試或 playground reset button 中清掉目前 session。
+
+Session state 會透過 `structuredClone()` 複製，因此 initial state 應該只放可 clone 的 plain data；不要放 function、DOM node、WeakMap、WeakSet 或依賴 prototype method 的 class instance。
 
 ### 3. 集中匯出 handlers
 
@@ -392,6 +420,7 @@ playground 不會進入 npm package；發佈內容由 root `package.json` 的 `f
 | Export | Description |
 | --- | --- |
 | `createGrpcMockRegistry()` | 建立以 service/method key 管理 handlers 的 mutable registry。 |
+| `createGrpcMockSession(initialState)` | 建立 resolver context 可使用的 typed session state。 |
 | `createGrpcMockTransport(options)` | 建立 mock `RpcTransport`。 |
 | `MockRpcTransport` | factory 內使用的 `RpcTransport` 實作。 |
 | `grpc.unary()` | 建立 unary handler，第三個參數可為 resolver 或 static response。 |
@@ -403,8 +432,10 @@ playground 不會進入 npm package；發佈內容由 root `package.json` 的 `f
 
 | Export | Description |
 | --- | --- |
-| `GrpcMockContext<I, O>` | Resolver context，包含 `request`、`method`、`meta`、`signal` 與 `passthrough()`。 |
+| `DeepReadonly<T>` | `session.getState()` 與 `session.update()` 回傳的深層 readonly state type。 |
+| `GrpcMockContext<I, O>` | Resolver context，包含 `request`、`method`、`meta`、`signal`、`session` 與 `passthrough()`。 |
 | `GrpcMockRegistry` | transport factory 使用的 registry contract。 |
+| `GrpcMockSession<TState>` | Session state API，包含 `getState()`、`update()` 與 `reset()`。 |
 | `MockHandler` | `grpc.unary()` 或 `grpc.serverStreaming()` 建立的 registration object。 |
 | `UnaryMockValue<O>` | Unary mock 可回傳的 static response 或 `grpc.reply()` value。 |
 | `UnaryResolver<I, O>` | Unary method resolver type。 |

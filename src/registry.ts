@@ -6,6 +6,7 @@ import {
 } from "@protobuf-ts/runtime-rpc";
 
 import { markReply } from "./reply.js";
+import { type GrpcMockSession, createGrpcMockSession } from "./session.js";
 import type {
 	GrpcMockRegistry,
 	GrpcMockReply,
@@ -54,14 +55,31 @@ function findMethod<I extends object, O extends object>(
 	return method as MethodInfo<I, O>;
 }
 
-class Registry implements GrpcMockRegistry {
-	readonly #registrations = new Map<string, MockHandler<object, object>>();
+export type CreateGrpcMockRegistryOptions<
+	TState extends object = Record<string, unknown>,
+> =
+	| {
+			initialState?: TState;
+			session?: never;
+	  }
+	| {
+			initialState?: never;
+			session?: GrpcMockSession<TState>;
+	  };
+
+class Registry<TState extends object> implements GrpcMockRegistry<TState> {
+	readonly #registrations = new Map<
+		string,
+		MockHandler<object, object, TState>
+	>();
+
+	constructor(readonly session: GrpcMockSession<TState>) {}
 
 	get size(): number {
 		return this.#registrations.size;
 	}
 
-	register(...handlers: readonly MockHandler<object, object>[]): this {
+	register(...handlers: readonly MockHandler<object, object, TState>[]): this {
 		for (const handler of handlers) {
 			this.#registrations.set(handler.key, handler);
 		}
@@ -71,37 +89,54 @@ class Registry implements GrpcMockRegistry {
 
 	get<I extends object, O extends object>(
 		methodOrKey: MethodInfo<I, O> | string,
-	): MockHandler<I, O> | undefined {
+	): MockHandler<I, O, TState> | undefined {
 		const key =
 			typeof methodOrKey === "string"
 				? methodOrKey
 				: createKey(methodOrKey.service, methodOrKey);
 
-		return this.#registrations.get(key) as MockHandler<I, O> | undefined;
+		return this.#registrations.get(key) as
+			| MockHandler<I, O, TState>
+			| undefined;
 	}
 
 	clear(): void {
 		this.#registrations.clear();
 	}
 
-	entries(): IterableIterator<[string, MockHandler<object, object>]> {
+	entries(): IterableIterator<[string, MockHandler<object, object, TState>]> {
 		return this.#registrations.entries();
 	}
 
+	unary<S extends ServiceInfo, N extends string>(
+		service: S,
+		methodLocalName: N,
+		resolver: UnaryResolver<ServiceInput<S>, ServiceOutput<S>, TState>,
+	): this;
+	unary<S extends ServiceInfo, N extends string>(
+		service: S,
+		methodLocalName: N,
+		response: UnaryMockValue<ServiceOutput<S>>,
+	): this;
 	unary<I extends object, O extends object>(
 		service: ServiceInfo,
 		methodLocalName: string,
-		resolverOrResponse: UnaryResolver<I, O> | UnaryMockValue<O>,
+		resolverOrResponse: UnaryResolver<I, O, TState> | UnaryMockValue<O>,
 	): this {
 		return this.register(
 			grpc.unary(service, methodLocalName, resolverOrResponse),
 		);
 	}
 
+	serverStreaming<S extends ServiceInfo, N extends string>(
+		service: S,
+		methodLocalName: N,
+		resolver: ServerStreamResolver<ServiceInput<S>, ServiceOutput<S>, TState>,
+	): this;
 	serverStreaming<I extends object, O extends object>(
 		service: ServiceInfo,
 		methodLocalName: string,
-		resolver: ServerStreamResolver<I, O>,
+		resolver: ServerStreamResolver<I, O, TState>,
 	): this {
 		return this.register(
 			grpc.serverStreaming(service, methodLocalName, resolver),
@@ -121,11 +156,15 @@ function createReply<O extends object>(
 	});
 }
 
-function createUnaryHandler<I extends object, O extends object>(
+function createUnaryHandler<
+	I extends object,
+	O extends object,
+	TState extends object = Record<string, unknown>,
+>(
 	service: ServiceInfo,
 	methodLocalName: string,
-	resolverOrResponse: UnaryResolver<I, O> | UnaryMockValue<O>,
-): MockHandler<I, O> {
+	resolverOrResponse: UnaryResolver<I, O, TState> | UnaryMockValue<O>,
+): MockHandler<I, O, TState> {
 	const method = findMethod<I, O>(service, methodLocalName, "unary");
 	const resolver =
 		typeof resolverOrResponse === "function"
@@ -136,15 +175,19 @@ function createUnaryHandler<I extends object, O extends object>(
 		key: createKey(service, method),
 		kind: "unary",
 		method,
-		resolver: resolver as UnaryResolver<I, O>,
+		resolver: resolver as UnaryResolver<I, O, TState>,
 	};
 }
 
-function createServerStreamingHandler<I extends object, O extends object>(
+function createServerStreamingHandler<
+	I extends object,
+	O extends object,
+	TState extends object = Record<string, unknown>,
+>(
 	service: ServiceInfo,
 	methodLocalName: string,
-	resolver: ServerStreamResolver<I, O>,
-): MockHandler<I, O> {
+	resolver: ServerStreamResolver<I, O, TState>,
+): MockHandler<I, O, TState> {
 	const method = findMethod<I, O>(service, methodLocalName, "serverStreaming");
 
 	return {
@@ -155,53 +198,101 @@ function createServerStreamingHandler<I extends object, O extends object>(
 	};
 }
 
-export function createGrpcMockRegistry(): GrpcMockRegistry {
-	return new Registry();
+export function createGrpcMockRegistry(): GrpcMockRegistry<
+	Record<string, unknown>
+>;
+export function createGrpcMockRegistry<TState extends object>(
+	options: CreateGrpcMockRegistryOptions<TState>,
+): GrpcMockRegistry<TState>;
+export function createGrpcMockRegistry<TState extends object>(
+	options?: CreateGrpcMockRegistryOptions<TState>,
+): GrpcMockRegistry<TState | Record<string, unknown>> {
+	if (options?.session) {
+		return new Registry(options.session);
+	}
+
+	if (options?.initialState) {
+		return new Registry(createGrpcMockSession(options.initialState));
+	}
+
+	return new Registry(createGrpcMockSession());
 }
 
-function unary<S extends ServiceInfo, N extends string>(
+function unary<
+	S extends ServiceInfo,
+	N extends string,
+	TState extends object = Record<string, unknown>,
+>(
 	service: S,
 	methodLocalName: N,
-	resolver: UnaryResolver<ServiceInput<S>, ServiceOutput<S>>,
-): MockHandler<ServiceInput<S>, ServiceOutput<S>>;
-function unary<S extends ServiceInfo, N extends string>(
+	resolver: UnaryResolver<ServiceInput<S>, ServiceOutput<S>, TState>,
+): MockHandler<ServiceInput<S>, ServiceOutput<S>, TState>;
+function unary<
+	S extends ServiceInfo,
+	N extends string,
+	TState extends object = Record<string, unknown>,
+>(
 	service: S,
 	methodLocalName: N,
 	response: UnaryMockValue<ServiceOutput<S>>,
-): MockHandler<ServiceInput<S>, ServiceOutput<S>>;
-function unary<I extends object, O extends object>(
+): MockHandler<ServiceInput<S>, ServiceOutput<S>, TState>;
+function unary<
+	I extends object,
+	O extends object,
+	TState extends object = Record<string, unknown>,
+>(
 	service: ServiceInfo,
 	methodLocalName: string,
-	resolver: UnaryResolver<I, O>,
-): MockHandler<I, O>;
-function unary<I extends object, O extends object>(
+	resolver: UnaryResolver<I, O, TState>,
+): MockHandler<I, O, TState>;
+function unary<
+	I extends object,
+	O extends object,
+	TState extends object = Record<string, unknown>,
+>(
 	service: ServiceInfo,
 	methodLocalName: string,
 	response: UnaryMockValue<O>,
-): MockHandler<I, O>;
-function unary<I extends object, O extends object>(
+): MockHandler<I, O, TState>;
+function unary<
+	I extends object,
+	O extends object,
+	TState extends object = Record<string, unknown>,
+>(
 	service: ServiceInfo,
 	methodLocalName: string,
-	resolverOrResponse: UnaryResolver<I, O> | UnaryMockValue<O>,
-): MockHandler<I, O> {
+	resolverOrResponse: UnaryResolver<I, O, TState> | UnaryMockValue<O>,
+): MockHandler<I, O, TState> {
 	return createUnaryHandler(service, methodLocalName, resolverOrResponse);
 }
 
-function serverStreaming<S extends ServiceInfo, N extends string>(
+function serverStreaming<
+	S extends ServiceInfo,
+	N extends string,
+	TState extends object = Record<string, unknown>,
+>(
 	service: S,
 	methodLocalName: N,
-	resolver: ServerStreamResolver<ServiceInput<S>, ServiceOutput<S>>,
-): MockHandler<ServiceInput<S>, ServiceOutput<S>>;
-function serverStreaming<I extends object, O extends object>(
+	resolver: ServerStreamResolver<ServiceInput<S>, ServiceOutput<S>, TState>,
+): MockHandler<ServiceInput<S>, ServiceOutput<S>, TState>;
+function serverStreaming<
+	I extends object,
+	O extends object,
+	TState extends object = Record<string, unknown>,
+>(
 	service: ServiceInfo,
 	methodLocalName: string,
-	resolver: ServerStreamResolver<I, O>,
-): MockHandler<I, O>;
-function serverStreaming<I extends object, O extends object>(
+	resolver: ServerStreamResolver<I, O, TState>,
+): MockHandler<I, O, TState>;
+function serverStreaming<
+	I extends object,
+	O extends object,
+	TState extends object = Record<string, unknown>,
+>(
 	service: ServiceInfo,
 	methodLocalName: string,
-	resolver: ServerStreamResolver<I, O>,
-): MockHandler<I, O> {
+	resolver: ServerStreamResolver<I, O, TState>,
+): MockHandler<I, O, TState> {
 	return createServerStreamingHandler(service, methodLocalName, resolver);
 }
 

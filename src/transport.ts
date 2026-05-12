@@ -13,6 +13,7 @@ import {
 } from "@protobuf-ts/runtime-rpc";
 
 import { type InternalReply, isReply, markReply } from "./reply.js";
+import type { GrpcMockSession } from "./session.js";
 import type {
 	GrpcMockContext,
 	GrpcMockRegistry,
@@ -24,8 +25,11 @@ const PASSTHROUGH_MARKER = Symbol("grpc-mock-passthrough");
 
 type UnhandledMode = "error" | "warn";
 
-export interface CreateGrpcMockTransportOptions {
-	registry: GrpcMockRegistry;
+export interface CreateGrpcMockTransportOptions<
+	TState extends object = Record<string, unknown>,
+> {
+	registry: GrpcMockRegistry<TState>;
+	session?: GrpcMockSession<TState>;
 	fallbackTransport?: RpcTransport;
 	onUnhandledRequest?: UnhandledMode;
 	defaultOptions?: RpcOptions;
@@ -120,16 +124,22 @@ function suppressUnhandled(...promises: readonly Promise<unknown>[]): void {
 	}
 }
 
-function createContext<I extends object, O extends object>(
+function createContext<
+	I extends object,
+	O extends object,
+	TState extends object,
+>(
 	method: MethodInfo<I, O>,
 	request: I,
 	options: RpcOptions,
-): GrpcMockContext<I, O> {
+	session: GrpcMockSession<TState>,
+): GrpcMockContext<I, O, TState> {
 	return {
 		request,
 		method,
 		meta: cloneMetadata(options.meta),
 		signal: options.abort ?? new AbortController().signal,
+		session,
 		passthrough,
 	};
 }
@@ -246,10 +256,12 @@ function pipeServerStreamingCall<I extends object, O extends object>(
 	);
 }
 
-function asUnaryResolver<I extends object, O extends object>(
-	handler: MockHandler<I, O>,
-): UnaryResolver<I, O> {
-	return handler.resolver as UnaryResolver<I, O>;
+function asUnaryResolver<
+	I extends object,
+	O extends object,
+	TState extends object,
+>(handler: MockHandler<I, O, TState>): UnaryResolver<I, O, TState> {
+	return handler.resolver as UnaryResolver<I, O, TState>;
 }
 
 function isIterable<T extends object>(
@@ -262,14 +274,18 @@ function isIterable<T extends object>(
 	);
 }
 
-export class MockRpcTransport implements RpcTransport {
-	readonly #registry: GrpcMockRegistry;
+export class MockRpcTransport<TState extends object = Record<string, unknown>>
+	implements RpcTransport
+{
+	readonly #registry: GrpcMockRegistry<TState>;
+	readonly #session: GrpcMockSession<TState>;
 	readonly #fallbackTransport: RpcTransport | undefined;
 	readonly #onUnhandledRequest: UnhandledMode;
 	readonly #defaultOptions: RpcOptions;
 
-	constructor(options: CreateGrpcMockTransportOptions) {
+	constructor(options: CreateGrpcMockTransportOptions<TState>) {
 		this.#registry = options.registry;
+		this.#session = options.session ?? options.registry.session;
 		this.#fallbackTransport = options.fallbackTransport;
 		this.#onUnhandledRequest = options.onUnhandledRequest ?? "error";
 		this.#defaultOptions = options.defaultOptions ?? {};
@@ -468,14 +484,16 @@ export class MockRpcTransport implements RpcTransport {
 		method: MethodInfo<I, O>,
 		input: I,
 		options: RpcOptions,
-		resolver: UnaryResolver<I, O>,
+		resolver: UnaryResolver<I, O, TState>,
 		headers: Deferred<RpcMetadata>,
 		response: Deferred<O>,
 		status: Deferred<RpcStatus>,
 		trailers: Deferred<RpcMetadata>,
 	): Promise<void> {
 		try {
-			const result = await resolver(createContext(method, input, options));
+			const result = await resolver(
+				createContext(method, input, options, this.#session),
+			);
 			const reply = normalizeReply(result);
 
 			headers.resolvePending(cloneMetadata(reply.headers));
@@ -520,7 +538,7 @@ export class MockRpcTransport implements RpcTransport {
 		method: MethodInfo<I, O>,
 		input: I,
 		options: RpcOptions,
-		handler: MockHandler<I, O>,
+		handler: MockHandler<I, O, TState>,
 		headers: Deferred<RpcMetadata>,
 		responses: RpcOutputStreamController<O>,
 		status: Deferred<RpcStatus>,
@@ -556,16 +574,16 @@ export class MockRpcTransport implements RpcTransport {
 			headers.resolvePending({});
 			const result = await (
 				handler.resolver as (
-					context: GrpcMockContext<I, O> & {
+					context: GrpcMockContext<I, O, TState> & {
 						stream: {
 							send(message: O): void;
 							complete(): void;
-							error(error: Error): void;
+							error(error: RpcError): void;
 						};
 					},
 				) => Promise<unknown> | unknown
 			)({
-				...createContext(method, input, options),
+				...createContext(method, input, options, this.#session),
 				stream: {
 					send,
 					complete: resolveSuccess,
@@ -616,8 +634,8 @@ export class MockRpcTransport implements RpcTransport {
 	}
 }
 
-export function createGrpcMockTransport(
-	options: CreateGrpcMockTransportOptions,
-): RpcTransport {
+export function createGrpcMockTransport<
+	TState extends object = Record<string, unknown>,
+>(options: CreateGrpcMockTransportOptions<TState>): RpcTransport {
 	return new MockRpcTransport(options);
 }
